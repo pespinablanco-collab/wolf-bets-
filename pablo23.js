@@ -86,15 +86,34 @@ function getMatchDate(match) {
 }
 
 async function loadProfile() {
+  // Cargamos el perfil y comprobamos el admin también mediante la función
+  // segura de Supabase. Así el panel no depende de cómo llegue el objeto
+  // devuelto por el SELECT y no falla aunque haya caché o cambios de sesión.
   const { data, error } = await sb.from("profiles")
     .select("id,username,balance,is_admin")
     .eq("id", currentUser.id)
     .maybeSingle();
 
   if (error) throw error;
-  profile = data;
+
+  profile = data || null;
+
+  let adminFlag = Boolean(profile?.is_admin);
+  try {
+    const { data: secureAdmin, error: adminError } = await sb.rpc("is_admin");
+    if (!adminError) adminFlag = Boolean(secureAdmin);
+  } catch (_) {
+    // Si la RPC no estuviera disponible, usamos is_admin del perfil.
+  }
+
+  if (profile) profile.is_admin = adminFlag;
+
   $("userName").textContent = profile?.username || currentUser.email;
-  $("balance").textContent = profile?.is_admin ? "ADMIN" : `${money(profile?.balance)} créditos`;
+  $("balance").textContent = adminFlag ? "ADMIN" : `${money(profile?.balance)} créditos`;
+
+  // Mostrar/ocultar inmediatamente el panel según el permiso real.
+  const panel = $("adminPanel");
+  if (panel) panel.classList.toggle("hidden", !adminFlag);
 }
 
 async function loadData() {
