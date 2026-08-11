@@ -1,48 +1,64 @@
 *{box-sizing:border-box}
-:root{--bg:#06080c;--panel:#0e131b;--panel2:#121923;--line:#27313e;--text:#f4f7fb;--muted:#8995a7;--red:#ff3d36;--green:#55e58a;--gold:#ffc857}
-html,body{margin:0;min-height:100%;font-family:Inter,Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--text)}
-body{background:
-radial-gradient(circle at 75% 5%,rgba(255,61,54,.09),transparent 25%),
-radial-gradient(circle at 10% 85%,rgba(80,100,130,.10),transparent 28%),var(--bg);overflow-x:hidden}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.08;z-index:-1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 800'%3E%3Cpath fill='%23fff' d='M640 170 595 45 505 132 400 98 295 132 205 45 160 170 72 240l62 92-18 125 88 19 52 126 88-82 56 74 56-74 88 82 52-126 88-19-18-125 62-92zM400 235c-73 0-132 59-132 132s59 132 132 132 132-59 132-132-59-132-132-132zm-62 120 38-30 24 30-24 30-38-30zm124 0-38-30-24 30 24 30 38-30z'/%3E%3C/svg%3E");background-position:right 100px;background-repeat:no-repeat;background-size:620px}
-button,input,select{font:inherit}
-button{border:0;cursor:pointer}
-.appbar{position:sticky;top:0;z-index:20;background:rgba(6,8,12,.86);backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-.nav{max-width:1250px;margin:auto;padding:13px 18px;display:flex;gap:9px;align-items:center}
-.brand{display:flex;align-items:center;gap:10px;font-weight:950;font-size:22px;letter-spacing:.4px}
-.wolfmark{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(145deg,#202a38,#0b0f15);border:1px solid #3a4657;box-shadow:0 8px 30px rgba(0,0,0,.35)}
-.brand span{color:var(--red)}
-.navlinks{display:flex;gap:5px;margin-left:auto}
-.navlinks button,.ghost{background:#141b25;color:#dbe2ec;padding:10px 12px;border-radius:10px}
-.navlinks button:hover,.ghost:hover{background:#1c2632}
-.wallet{padding:10px 13px;border-radius:10px;background:#122219;color:var(--green);font-weight:900}
-.container{max-width:1250px;margin:24px auto;padding:0 18px}
-.hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:22px;padding:30px;background:linear-gradient(135deg,rgba(18,24,33,.96),rgba(9,12,17,.97));margin-bottom:18px}
-.hero:after{content:"WOLF";position:absolute;right:18px;bottom:-30px;font-size:130px;font-weight:1000;letter-spacing:-8px;opacity:.035}
-.hero h1{margin:0 0 7px;font-size:32px}.muted{color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:15px}
-.card{background:rgba(13,18,25,.95);border:1px solid var(--line);border-radius:17px;padding:18px;box-shadow:0 15px 45px rgba(0,0,0,.15)}
-.match-head{display:flex;justify-content:space-between;gap:10px}.date{font-size:12px;color:var(--muted)}
-.teams{font-size:21px;font-weight:950;margin:16px 0}
-.pill{background:#1b2531;border:1px solid #2b3745;color:#cbd4df;border-radius:999px;padding:5px 9px;font-size:12px}
-.market-tabs{display:flex;gap:6px;overflow:auto;padding-bottom:3px;margin:12px 0}
-.market-tabs button{white-space:nowrap;padding:9px 11px;border-radius:9px;background:#151d28;color:#c7d0dc}
-.market-tabs button.active{background:var(--red);color:#fff}
-.odds{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.odd{display:flex;justify-content:space-between;align-items:center;text-align:left;background:#19212c;color:#fff;border:1px solid transparent;padding:12px;border-radius:11px}
-.odd:hover{border-color:#485568;background:#202a37}.odd b{color:var(--green)}
-.form{display:grid;gap:10px}.form input,.form select{width:100%;background:#080c11;color:#fff;border:1px solid #34404f;padding:12px;border-radius:10px;outline:none}.form input:focus,.form select:focus{border-color:#65758a}
-.primary{background:linear-gradient(135deg,#ff5148,#e92f2a);color:white;padding:12px 15px;border-radius:10px;font-weight:900}
-.success{background:#1c9b54;color:white;padding:9px 11px;border-radius:9px;font-weight:800}.danger{background:#9b2931;color:#fff;padding:9px 11px;border-radius:9px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.actions{display:flex;gap:6px;flex-wrap:wrap}
-.auth{max-width:440px;margin:70px auto}.authlogo{justify-content:center;margin-bottom:8px}.switch{display:flex;gap:6px;margin:16px 0}.switch button{flex:1}.hidden{display:none}
-.title{font-size:14px;font-weight:950;text-transform:uppercase;color:#9aa7b8;letter-spacing:.7px;margin:18px 0 9px}
-.admin-market{border:1px solid #293544;border-radius:13px;padding:13px;margin:10px 0;background:#0c1118}
-.market-line{display:grid;grid-template-columns:130px 1fr 100px 110px;gap:7px}.market-line input,.market-line select{background:#080c11;color:white;border:1px solid #34404f;padding:10px;border-radius:9px}
-.user-line{padding:12px 0;border-bottom:1px solid #242d38}.user-line:last-child{border-bottom:0}
-.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid #252e39}
-.toast{position:fixed;right:18px;bottom:18px;z-index:100;background:#151d27;border:1px solid #3b4858;padding:13px 16px;border-radius:11px;box-shadow:0 15px 40px #0008}
-.empty{text-align:center;padding:25px;color:var(--muted)}
-.stat{font-size:27px;font-weight:950}.green{color:var(--green)}.red{color:#ff7771}
-.slip{border:1px solid #283341;border-radius:12px;padding:13px;margin:9px 0;background:#0c1118}
-@media(max-width:760px){.navlinks{display:none}.odds{grid-template-columns:1fr}.market-line{grid-template-columns:1fr}.container{padding:0 12px}.hero{padding:22px}.hero h1{font-size:27px}}
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eef2f7;background:#0b0e13;line-height:1.45}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#17202c 0,#0b0e13 48%,#07090d 100%)}
+button,input{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;gap:20px;align-items:center;padding:16px 24px;background:rgba(9,12,17,.92);backdrop-filter:blur(12px);border-bottom:1px solid #252d38}
+.brand{font-size:22px;font-weight:900;letter-spacing:.04em}
+.subtitle,.muted{color:#8f9aaa;font-size:13px}
+.account{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.balance{font-weight:800;padding:7px 11px;border-radius:999px;background:#17251d;color:#7ee29a;border:1px solid #294634}
+.container{max-width:1100px;margin:0 auto;padding:28px 18px 80px}
+.card{background:rgba(18,23,31,.92);border:1px solid #28313d;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.22)}
+.auth-card{max-width:460px;margin:60px auto;padding:28px}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:28px;margin-bottom:6px}
+h2{font-size:20px;margin-bottom:4px}
+label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:#b9c2ce;margin:14px 0}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid #35404e;background:#0c1118;color:#fff;outline:none}
+input:focus{border-color:#708198;box-shadow:0 0 0 3px rgba(112,129,152,.14)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;transition:.15s transform,.15s opacity}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:#f0f3f6;color:#11161d}
+.btn-secondary{background:#242d38;color:#e9edf2;border:1px solid #364252}
+.btn-ghost{background:transparent;color:#aab5c3;border:1px solid #313c49}
+.message{min-height:20px;margin-top:12px;font-size:13px}
+.message.error{color:#ff8f8f}
+.message.ok{color:#7ee29a}
+.page-head,.section-title{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.page-head{margin-bottom:18px}
+.match-card{margin:14px 0;padding:18px}
+.match-header{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;margin-bottom:15px}
+.match-title{font-size:18px;font-weight:900}
+.market-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.market-group{border-top:1px solid #27303b;padding-top:13px}
+.market-group h3{font-size:12px;color:#909cab;text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+.market-btn{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;margin:7px 0;background:#121923;border:1px solid #2c3745;border-radius:11px;color:#e9edf2;text-align:left}
+.market-btn:hover{border-color:#68788d;background:#17202b}
+.market-btn.selected{border-color:#9aa8ba;background:#222d3a;box-shadow:inset 0 0 0 1px #9aa8ba}
+.market-name{font-weight:700;font-size:14px}
+.odd{font-weight:900;color:#b9f0c7;white-space:nowrap}
+.simple-bet{display:flex;gap:10px;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #27303b}
+.simple-bet label{margin:0;max-width:150px}
+.simple-bet .btn{height:42px}
+.combo-slip{margin-top:22px;padding:20px;position:sticky;bottom:12px}
+.combo-item{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #27303b}
+.combo-item:last-child{border-bottom:0}
+.combo-remove{border:0;background:none;color:#ff9292;font-weight:900}
+.empty-state{padding:18px 0;color:#778394;font-size:14px}
+.combo-footer{display:grid;grid-template-columns:auto auto 1fr;align-items:end;gap:24px;border-top:1px solid #27303b;padding-top:15px;margin-top:10px}
+.combo-footer strong{display:block;font-size:18px;margin-top:3px}
+.stake-box{display:flex;gap:10px;align-items:end;justify-content:flex-end}
+.stake-box label{margin:0;width:130px}
+.history-card{margin-top:22px;padding:20px}
+.history-item{padding:14px 0;border-bottom:1px solid #27303b}
+.history-item:last-child{border-bottom:0}
+.history-head{display:flex;justify-content:space-between;gap:15px}
+.status{font-size:12px;font-weight:900;text-transform:uppercase}
+.status.pending{color:#f0c36d}.status.won{color:#7ee29a}.status.lost{color:#ff8585}
+.legs{margin:8px 0 0 15px;color:#aeb8c6;font-size:13px}
+.loading{position:fixed;inset:auto 18px 18px auto;background:#eef2f7;color:#10151c;padding:10px 14px;border-radius:10px;font-weight:800;box-shadow:0 8px 30px rgba(0,0,0,.3);z-index:50}
+@media(max-width:700px){.topbar{padding:13px 15px;align-items:flex-start}.container{padding:20px 12px 60px}.page-head,.section-title,.match-header{align-items:flex-start;flex-direction:column}.combo-footer{grid-template-columns:1fr 1fr}.stake-box{grid-column:1/-1;justify-content:stretch}.stake-box label{flex:1}.stake-box .btn{flex:1}.account{font-size:12px}.market-grid{grid-template-columns:1fr}}

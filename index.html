@@ -1,13 +1,98 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wolf Bets</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wolf Bets V5</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app"></div>
-<script src="app.js"></script>
+  <header class="topbar">
+    <div>
+      <div class="brand">🐺 WOLF BETS</div>
+      <div class="subtitle">Casa privada · V5 · Simples + Combinadas</div>
+    </div>
+    <div class="account">
+      <span id="userName">No conectado</span>
+      <span id="balance" class="balance">—</span>
+      <button id="logoutBtn" class="btn btn-ghost hidden">Salir</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="authView" class="card auth-card">
+      <h1>Entrar</h1>
+      <p class="muted">Accede con tu cuenta de Supabase.</p>
+      <form id="authForm">
+        <label>Email
+          <input id="email" type="email" autocomplete="email" required>
+        </label>
+        <label>Contraseña
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <div class="row">
+          <button class="btn btn-primary" type="submit">Entrar</button>
+          <button class="btn btn-secondary" type="button" id="registerBtn">Crear cuenta</button>
+        </div>
+      </form>
+      <div id="authMessage" class="message"></div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <div class="page-head">
+        <div>
+          <h1>Partidos</h1>
+          <p class="muted">Selecciona mercados para apostar.</p>
+        </div>
+        <button id="refreshBtn" class="btn btn-secondary">↻ Actualizar</button>
+      </div>
+
+      <div id="globalMessage" class="message"></div>
+      <div id="matchesList"></div>
+
+      <section class="card combo-slip">
+        <div class="section-title">
+          <div>
+            <h2>🎯 Combinada</h2>
+            <p class="muted">Necesitas al menos 2 selecciones de mercados diferentes.</p>
+          </div>
+          <button id="clearComboBtn" class="btn btn-ghost">Vaciar</button>
+        </div>
+        <div id="comboSelections" class="empty-state">No has seleccionado ninguna apuesta.</div>
+        <div id="comboFooter" class="combo-footer hidden">
+          <div>
+            <span class="muted">Cuota total</span>
+            <strong id="comboOdd">1.00</strong>
+          </div>
+          <div>
+            <span class="muted">Premio potencial</span>
+            <strong id="comboPotential">0</strong>
+          </div>
+          <div class="stake-box">
+            <label>Apuesta
+              <input id="comboStake" type="number" min="1" step="1" value="10">
+            </label>
+            <button id="placeComboBtn" class="btn btn-primary">Apostar combinada</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card history-card">
+        <div class="section-title">
+          <div>
+            <h2>Mis apuestas</h2>
+            <p class="muted">Historial de simples y combinadas.</p>
+          </div>
+          <button id="refreshHistoryBtn" class="btn btn-secondary">Actualizar</button>
+        </div>
+        <div id="betsHistory"></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="loading" class="loading hidden">Cargando…</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="game.js"></script>
 </body>
 </html>
