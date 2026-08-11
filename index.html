@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <div>
-      <div class="brand">🐺 WOLF BETS</div>
+      <a class="brand-logo" href="#"><img src="logo.png" alt="Pablo23 Bets"></a>
       <div class="subtitle">Casa privada · V5 · Simples + Combinadas</div>
     </div>
     <div class="account">
@@ -21,6 +21,7 @@
 
   <main class="container">
     <section id="authView" class="card auth-card">
+      <div class="auth-logo"><img src="logo.png" alt="Pablo23 Bets"></div>
       <h1>Entrar</h1>
       <p class="muted">Accede con tu cuenta de Supabase.</p>
       <form id="authForm">
@@ -41,8 +42,8 @@
     <section id="appView" class="hidden">
       <div class="page-head">
         <div>
-          <h1>Partidos</h1>
-          <p class="muted">Selecciona mercados para apostar.</p>
+          <div><span class="eyebrow">PABLO23 BETS</span><h1>Partidos</h1>
+          <p class="muted">Apuesta con cabeza, gana con estilo.</p></div>
         </div>
         <button id="refreshBtn" class="btn btn-secondary">↻ Actualizar</button>
       </div>
@@ -51,6 +52,7 @@
       <div id="matchesList"></div>
 
       <section class="card combo-slip">
+        <div class="combo-glow"></div>
         <div class="section-title">
           <div>
             <h2>🎯 Combinada</h2>
