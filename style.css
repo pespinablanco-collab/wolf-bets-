@@ -120,3 +120,6 @@ button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
 .btn-danger:hover{background:#43121b;border-color:#e11d38}
 @media(max-width:1100px){.admin-form-grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.admin-form-grid.four{grid-template-columns:1fr}.admin-super-item{align-items:flex-start;flex-direction:column}}
+
+/* ADMIN V8: acceso directo, sin alterar el overlay */
+#adminTopBtn{padding:7px 10px;font-size:11px}

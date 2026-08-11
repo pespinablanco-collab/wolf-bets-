@@ -113,7 +113,10 @@ async function loadProfile() {
 
   // Mostrar/ocultar inmediatamente el panel según el permiso real.
   const panel = $("adminPanel");
+  const adminTopBtn = $("adminTopBtn");
   if (panel) panel.classList.toggle("hidden", !adminFlag);
+  if (adminTopBtn) adminTopBtn.classList.toggle("hidden", !adminFlag);
+  if (adminTopBtn) adminTopBtn.onclick = () => panel?.scrollIntoView({behavior:"smooth", block:"start"});
 }
 
 async function loadData() {
@@ -796,6 +799,11 @@ function initAdminPanel() {
   if (!panel) return;
   const isAdmin = Boolean(profile?.is_admin);
   panel.classList.toggle("hidden", !isAdmin);
+  const adminTopBtn = $("adminTopBtn");
+  if (adminTopBtn) {
+    adminTopBtn.classList.toggle("hidden", !isAdmin);
+    adminTopBtn.onclick = () => panel.scrollIntoView({behavior:"smooth", block:"start"});
+  }
   if (!isAdmin) return;
 
   $("adminNewMatchBtn").onclick = () => { adminResetForm(); $("adminEditor").scrollIntoView({behavior:"smooth", block:"start"}); };
