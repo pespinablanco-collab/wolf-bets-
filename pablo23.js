@@ -387,6 +387,270 @@ function statusText(s) {
   return ({ pending:"Pendiente", won:"Ganada", lost:"Perdida" })[s] || s;
 }
 
+
+
+// ==========================================================
+// PABLO23 BETS - PANEL ADMIN
+// ==========================================================
+let adminSelectedMatchId = null;
+let adminMatches = [];
+let adminMarkets = [];
+
+function adminMsg(text, type = "") {
+  const el = $("adminMessage");
+  if (!el) return;
+  el.textContent = text || "";
+  el.className = `message ${type}`;
+}
+
+function localDateTimeValue(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function adminResetForm() {
+  $("adminMatchId").value = "";
+  $("adminEditorTitle").textContent = "Nuevo partido";
+  $("adminHome").value = "";
+  $("adminAway").value = "";
+  $("adminDate").value = localDateTimeValue(new Date(Date.now() + 3600000));
+  $("adminSport").value = "Fútbol";
+  $("adminCompetition").value = "";
+  $("adminOddHome").value = "2.00";
+  $("adminOddDraw").value = "3.00";
+  $("adminOddAway").value = "2.00";
+  $("adminStatus").value = "open";
+  $("adminResult").value = "";
+  $("adminHomeLogo").value = "";
+  $("adminAwayLogo").value = "";
+  $("adminHomeShirt").value = "";
+  $("adminAwayShirt").value = "";
+  $("adminMatchImage").value = "";
+  $("adminBanner").value = "";
+  $("adminFeatured").checked = false;
+  $("adminSortOrder").value = "0";
+}
+
+function adminFillForm(match) {
+  $("adminMatchId").value = match.id;
+  $("adminEditorTitle").textContent = `Editar #${match.id}`;
+  $("adminHome").value = match.home || "";
+  $("adminAway").value = match.away || "";
+  $("adminDate").value = localDateTimeValue(match.match_date);
+  $("adminSport").value = match.sport || "Fútbol";
+  $("adminCompetition").value = match.competition || "";
+  $("adminOddHome").value = match.odd_home ?? "2.00";
+  $("adminOddDraw").value = match.odd_draw ?? "3.00";
+  $("adminOddAway").value = match.odd_away ?? "2.00";
+  $("adminStatus").value = match.status || "open";
+  $("adminResult").value = match.result || "";
+  $("adminHomeLogo").value = match.home_logo_url || "";
+  $("adminAwayLogo").value = match.away_logo_url || "";
+  $("adminHomeShirt").value = match.home_shirt_url || "";
+  $("adminAwayShirt").value = match.away_shirt_url || "";
+  $("adminMatchImage").value = match.match_image_url || "";
+  $("adminBanner").value = match.banner_url || "";
+  $("adminFeatured").checked = Boolean(match.featured);
+  $("adminSortOrder").value = match.sort_order ?? 0;
+}
+
+async function adminLoadData() {
+  if (!profile?.is_admin) return;
+  const [mr, kr] = await Promise.all([
+    sb.from("matches").select("*").order("featured", { ascending: false }).order("sort_order", { ascending: true }).order("match_date", { ascending: true }),
+    sb.from("markets").select("*").order("match_id").order("sort_order").order("id")
+  ]);
+  if (mr.error) throw mr.error;
+  if (kr.error) throw kr.error;
+  adminMatches = mr.data || [];
+  adminMarkets = kr.data || [];
+  renderAdminMatches();
+  if (adminSelectedMatchId != null) {
+    const selected = adminMatches.find(m => Number(m.id) === Number(adminSelectedMatchId));
+    if (selected) renderAdminMarkets(selected);
+    else adminSelectedMatchId = null;
+  }
+}
+
+function renderAdminMatches() {
+  const root = $("adminMatchesList");
+  if (!root) return;
+  $("adminMatchCount").textContent = String(adminMatches.length);
+  if (!adminMatches.length) {
+    root.innerHTML = `<div class="empty-state">Todavía no hay partidos. Pulsa «Añadir partido».</div>`;
+    return;
+  }
+  root.innerHTML = adminMatches.map(m => {
+    const active = Number(adminSelectedMatchId) === Number(m.id);
+    const openMarkets = adminMarkets.filter(x => Number(x.match_id) === Number(m.id) && x.is_open).length;
+    return `<article class="admin-match-item ${active ? "active" : ""}">
+      <div class="admin-match-top">
+        <div class="admin-match-teams">${esc(m.home)} <span class="muted">vs</span> ${esc(m.away)}</div>
+        <span class="status ${m.status === "open" ? "won" : "pending"}">${esc(m.status || "open")}</span>
+      </div>
+      <div class="admin-match-meta"><span>${esc(m.sport || "Fútbol")}</span><span>${esc(m.competition || "Sin competición")}</span><span>${esc(getMatchDate(m))}</span><span>${openMarkets} mercados abiertos</span></div>
+      <div class="admin-match-actions">
+        <button class="btn btn-secondary admin-mini" data-admin-edit="${m.id}">Editar</button>
+        <button class="btn btn-ghost admin-mini" data-admin-markets="${m.id}">Cuotas</button>
+        <button class="btn btn-ghost admin-mini" data-admin-close="${m.id}">Cerrar mercados</button>
+      </div>
+    </article>`;
+  }).join("");
+
+  root.querySelectorAll("[data-admin-edit]").forEach(b => b.addEventListener("click", () => {
+    const m = adminMatches.find(x => Number(x.id) === Number(b.dataset.adminEdit));
+    if (!m) return;
+    adminSelectedMatchId = Number(m.id);
+    adminFillForm(m);
+    renderAdminMatches();
+    renderAdminMarkets(m);
+    $("adminEditor").scrollIntoView({behavior:"smooth", block:"start"});
+  }));
+  root.querySelectorAll("[data-admin-markets]").forEach(b => b.addEventListener("click", () => {
+    const m = adminMatches.find(x => Number(x.id) === Number(b.dataset.adminMarkets));
+    if (!m) return;
+    adminSelectedMatchId = Number(m.id);
+    renderAdminMatches();
+    renderAdminMarkets(m);
+    $("adminMarkets").scrollIntoView({behavior:"smooth", block:"start"});
+  }));
+  root.querySelectorAll("[data-admin-close]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.adminClose);
+    if (!confirm("¿Cerrar todos los mercados de este partido? No se borrará el historial.")) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_close_match_markets", { p_match_id:id, p_status:"closed" });
+      if (error) throw error;
+      adminSelectedMatchId = id;
+    }, "Mercados cerrados.");
+  }));
+}
+
+function renderAdminMarkets(match) {
+  const toolbar = $("adminMarketToolbar");
+  const root = $("adminMarketsList");
+  if (!toolbar || !root || !match) return;
+  toolbar.classList.remove("hidden");
+  $("adminSelectedMatchTitle").textContent = `${match.home} vs ${match.away}`;
+  $("adminSelectedMatchMeta").textContent = `${match.sport || "Fútbol"} · ${getMatchDate(match)}`;
+  const list = adminMarkets.filter(m => Number(m.match_id) === Number(match.id));
+  if (!list.length) {
+    root.innerHTML = `<div class="empty-state">No hay mercados. Pulsa «Añadir mercado».</div>`;
+    return;
+  }
+  root.innerHTML = list.map(m => `<div class="admin-market-row" data-market-row="${m.id}">
+    <label>Categoría<input data-field="category" value="${esc(m.category || "Resultado")}"></label>
+    <label>Nombre / selección<input data-field="name" value="${esc(m.name || "")}"></label>
+    <label>Cuota<input data-field="odd" type="number" step="0.01" min="1.01" value="${Number(m.odd).toFixed(2)}"></label>
+    <label>Estado<select data-field="open"><option value="true" ${m.is_open ? "selected" : ""}>Abierto</option><option value="false" ${!m.is_open ? "selected" : ""}>Cerrado</option></select></label>
+    <div class="market-actions">
+      <button class="btn btn-secondary" data-save-market="${m.id}">Guardar</button>
+      <button class="btn btn-ghost" data-resolve-market="${m.id}">Resolver</button>
+    </div>
+  </div>`).join("");
+
+  root.querySelectorAll("[data-save-market]").forEach(b => b.addEventListener("click", async () => {
+    const row = b.closest("[data-market-row]");
+    const id = Number(b.dataset.saveMarket);
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_update_market", {
+        p_market_id:id,
+        p_category:row.querySelector('[data-field="category"]').value.trim(),
+        p_name:row.querySelector('[data-field="name"]').value.trim(),
+        p_odd:Number(row.querySelector('[data-field="odd"]').value),
+        p_is_open:row.querySelector('[data-field="open"]').value === "true",
+        p_sort_order:0
+      });
+      if (error) throw error;
+    }, "Mercado y cuota actualizados.");
+  }));
+
+  root.querySelectorAll("[data-resolve-market]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.resolveMarket);
+    const m = adminMarkets.find(x => Number(x.id) === id);
+    if (!m) return;
+    const winner = prompt(`Resultado exacto para «${m.name}».\n\nDebe coincidir con la selección apostada.`, m.name);
+    if (winner === null || !winner.trim()) return;
+    if (!confirm(`¿Resolver «${m.name}» como «${winner.trim()}»? Esto liquida simples y afecta a las combinadas.`)) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("resolve_single_market", { p_market_id:id, p_winner:winner.trim() });
+      if (error) throw error;
+    }, "Mercado resuelto y apuestas liquidadas.");
+  }));
+}
+
+async function adminAction(action, successText) {
+  loading(true);
+  try {
+    await action();
+    adminMsg(successText, "ok");
+    await adminLoadData();
+    await loadData();
+  } catch (e) {
+    console.error(e);
+    adminMsg(e.message || "No se pudo completar la acción.", "error");
+  } finally {
+    loading(false);
+  }
+}
+
+async function adminSaveMatch(e) {
+  e.preventDefault();
+  const id = Number($("adminMatchId").value || 0);
+  const values = {
+    p_home:$("adminHome").value.trim(), p_away:$("adminAway").value.trim(),
+    p_match_date:new Date($("adminDate").value).toISOString(), p_status:$("adminStatus").value,
+    p_odd_home:Number($("adminOddHome").value), p_odd_draw:Number($("adminOddDraw").value), p_odd_away:Number($("adminOddAway").value),
+    p_result:$("adminResult").value || null, p_sport:$("adminSport").value.trim() || "Fútbol", p_competition:$("adminCompetition").value.trim() || null,
+    p_home_logo_url:$("adminHomeLogo").value.trim() || null, p_away_logo_url:$("adminAwayLogo").value.trim() || null,
+    p_home_shirt_url:$("adminHomeShirt").value.trim() || null, p_away_shirt_url:$("adminAwayShirt").value.trim() || null,
+    p_match_image_url:$("adminMatchImage").value.trim() || null, p_banner_url:$("adminBanner").value.trim() || null,
+    p_featured:$("adminFeatured").checked, p_sort_order:Number($("adminSortOrder").value || 0)
+  };
+  if (Object.values(values).some(v => v === undefined)) return;
+  await adminAction(async () => {
+    const rpc = id ? "admin_update_match" : "admin_create_match";
+    const params = id ? { p_match_id:id, ...values } : values;
+    const { error } = await sb.rpc(rpc, params);
+    if (error) throw error;
+  }, id ? "Partido actualizado." : "Partido creado.");
+  adminResetForm();
+}
+
+async function adminAddMarket() {
+  if (!adminSelectedMatchId) {
+    adminMsg("Selecciona primero un partido.", "error");
+    return;
+  }
+  const category = prompt("Categoría: Resultado, Goles, Córners, Remates, A puerta, Tarjetas o Jugadores", "Resultado");
+  if (!category) return;
+  const name = prompt("Nombre de la selección / mercado", "Gana local");
+  if (!name) return;
+  const odd = Number(prompt("Cuota", "2.00"));
+  if (!Number.isFinite(odd) || odd <= 1) { adminMsg("La cuota debe ser mayor que 1.", "error"); return; }
+  await adminAction(async () => {
+    const { error } = await sb.rpc("admin_create_market", { p_match_id:Number(adminSelectedMatchId), p_category:category.trim(), p_name:name.trim(), p_odd:odd, p_is_open:true, p_sort_order:0 });
+    if (error) throw error;
+  }, "Mercado creado.");
+}
+
+function initAdminPanel() {
+  const panel = $("adminPanel");
+  if (!panel) return;
+  const isAdmin = Boolean(profile?.is_admin);
+  panel.classList.toggle("hidden", !isAdmin);
+  if (!isAdmin) return;
+
+  $("adminNewMatchBtn").onclick = () => { adminResetForm(); $("adminEditor").scrollIntoView({behavior:"smooth", block:"start"}); };
+  $("adminCancelEditBtn").onclick = adminResetForm;
+  $("adminRefreshBtn").onclick = () => adminAction(adminLoadData, "Panel actualizado.");
+  $("adminMatchForm").onsubmit = adminSaveMatch;
+  $("adminAddMarketBtn").onclick = adminAddMarket;
+  adminResetForm();
+  adminLoadData().catch(e => adminMsg(e.message || "No se pudo cargar el panel admin.", "error"));
+}
 async function register() {
   const email = $("email").value.trim();
   const password = $("password").value;
@@ -453,6 +717,7 @@ async function boot() {
 
   try {
     await loadProfile();
+    initAdminPanel();
     await loadData();
   } catch (e) {
     console.error(e);
