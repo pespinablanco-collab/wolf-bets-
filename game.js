@@ -4,10 +4,47 @@
    IMPORTANT: replace SUPABASE_URL and SUPABASE_ANON_KEY.
    ========================================================== */
 
-const SUPABASE_URL = "PEGA_AQUI_TU_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "PEGA_AQUI_TU_SUPABASE_ANON_KEY";
+/*
+  PABLO23 BETS V5 - game.js
+  IMPORTANTE:
+  Pon aquí los datos de Supabase del proyecto que ya tienes funcionando.
+
+  Supabase -> Project Settings -> API
+  - Project URL
+  - Publishable key (o anon public key)
+
+  NO uses nunca la service_role key en una web pública.
+*/
+
+const SUPABASE_URL = "PEGA_AQUI_TU_PROJECT_URL";
+const SUPABASE_ANON_KEY = "PEGA_AQUI_TU_PUBLISHABLE_O_ANON_KEY";
 
 const { createClient } = window.supabase;
+
+if (!SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.startsWith("http://")) {
+  console.error("Pablo23 Bets: falta configurar SUPABASE_URL en game.js.");
+  document.addEventListener("DOMContentLoaded", () => {
+    const box = document.getElementById("authMessage");
+    if (box) {
+      box.textContent = "Configura SUPABASE_URL y SUPABASE_ANON_KEY en game.js.";
+      box.className = "message error";
+    }
+  });
+  throw new Error("Supabase no está configurado. Edita SUPABASE_URL en game.js.");
+}
+
+if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.includes("PEGA_AQUI")) {
+  console.error("Pablo23 Bets: falta configurar SUPABASE_ANON_KEY en game.js.");
+  document.addEventListener("DOMContentLoaded", () => {
+    const box = document.getElementById("authMessage");
+    if (box) {
+      box.textContent = "Configura la Publishable/anon key de Supabase en game.js.";
+      box.className = "message error";
+    }
+  });
+  throw new Error("Supabase key no configurada. Edita SUPABASE_ANON_KEY en game.js.");
+}
+
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
