@@ -1,7 +1,6 @@
 /* ==========================================================
-   WOLF BETS V5 - game.js
-   Frontend compatible with the SQL supplied by the project.
-   IMPORTANT: replace SUPABASE_URL and SUPABASE_ANON_KEY.
+   PABLO23 BETS V5 - game.js
+   Supabase configurado para el proyecto Pablo23 Bets.
    ========================================================== */
 
 const SUPABASE_URL = "https://acfctgzevmstoqqhtwfs.supabase.co";
