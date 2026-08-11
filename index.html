@@ -176,9 +176,11 @@
                 <label>Cuota empate<input id="adminOddDraw" type="number" step="0.01" min="1.01" value="3.00"></label>
                 <label>Cuota visitante<input id="adminOddAway" type="number" step="0.01" min="1.01" value="2.00"></label>
               </div>
-              <div class="admin-form-grid two">
+              <div class="admin-form-grid four">
                 <label>Estado<select id="adminStatus"><option value="open">Abierto</option><option value="closed">Cerrado</option><option value="finished">Finalizado</option><option value="cancelled">Cancelado</option></select></label>
                 <label>Resultado<select id="adminResult"><option value="">Sin resolver</option><option value="home">Gana local</option><option value="draw">Empate</option><option value="away">Gana visitante</option></select></label>
+                <label>Goles local<input id="adminScoreHome" type="number" min="0" step="1" placeholder="0"></label>
+                <label>Goles visitante<input id="adminScoreAway" type="number" min="0" step="1" placeholder="0"></label>
               </div>
               <div class="admin-media-box">
                 <div class="admin-media-title">🖼️ Imágenes y escudos</div>
@@ -205,6 +207,14 @@
           </div>
           <div id="adminMarketsList" class="admin-markets-list"><div class="empty-state">Selecciona un partido para editar sus mercados y cuotas.</div></div>
         </section>
+
+        <section class="admin-card admin-super-card">
+          <div class="admin-card-head">
+            <div><span class="eyebrow">PROMOCIONES</span><h3>⚡ Supercuotas</h3></div>
+            <span class="muted">Convierte cualquier cuota en una oferta destacada</span>
+          </div>
+          <div id="adminSuperList" class="admin-super-list"><div class="empty-state">Selecciona un mercado para gestionar su supercuota.</div></div>
+        </section>
       </section>
 
   </main>
@@ -212,6 +222,6 @@
   <div id="loading" class="loading hidden">Cargando…</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="pablo23.js?v=10.0"></script>
+  <script src="pablo23.js?v=12.0"></script>
 </body>
 </html>

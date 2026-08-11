@@ -119,16 +119,20 @@ async function loadProfile() {
 async function loadData() {
   loading(true);
   try {
-    const [matchesRes, marketsRes] = await Promise.all([
+    try { await sb.rpc("expire_supercuotas"); } catch (_) {}
+    const [matchesRes, marketsRes, superRes] = await Promise.all([
       sb.from("matches").select("*").order("id", { ascending: true }),
-      sb.from("markets").select("*").eq("is_open", true).order("match_id").order("sort_order").order("id")
+      sb.from("markets").select("*").eq("is_open", true).order("match_id").order("sort_order").order("id"),
+      sb.from("supercuotas").select("*").eq("active", true).order("sort_order").order("id")
     ]);
 
     if (matchesRes.error) throw matchesRes.error;
     if (marketsRes.error) throw marketsRes.error;
+    if (superRes.error && !String(superRes.error.message || "").includes("supercuotas")) throw superRes.error;
 
     matches = matchesRes.data || [];
     markets = marketsRes.data || [];
+    adminSupercuotas = superRes.data || [];
     renderMatches();
     await loadHistory();
   } catch (e) {
@@ -181,8 +185,14 @@ function renderMatches() {
             return `
               <div class="market-row ${selected ? "selected" : ""}">
                 <button class="market-main ${selected ? "selected" : ""}" data-market-id="${m.id}" title="Añadir a combinada">
-                  <span class="market-name">${esc(m.name)}</span>
-                  <span class="odd">${Number(m.odd).toFixed(2)}</span>
+                  <span class="market-name">${esc(m.name)}${(() => {
+                    const s = adminSupercuotas.find(x => Number(x.market_id) === Number(m.id));
+                    return s ? `<span class="super-badge">⚡ ${esc(s.label || "SUPERCUOTA")}</span>` : "";
+                  })()}</span>
+                  <span class="odd-wrap">${(() => {
+                    const s = adminSupercuotas.find(x => Number(x.market_id) === Number(m.id));
+                    return s ? `<del class="old-odd">${Number(s.original_odd).toFixed(2)}</del><span class="odd super-odd">${Number(m.odd).toFixed(2)}</span>` : `<span class="odd">${Number(m.odd).toFixed(2)}</span>`;
+                  })()}</span>
                 </button>
                 <button class="simple-action" data-simple-id="${m.id}" title="Apuesta simple">Simple</button>
               </div>`;
@@ -414,6 +424,7 @@ function statusText(s) {
 let adminSelectedMatchId = null;
 let adminMatches = [];
 let adminMarkets = [];
+let adminSupercuotas = [];
 
 function adminMsg(text, type = "") {
   const el = $("adminMessage");
@@ -443,6 +454,8 @@ function adminResetForm() {
   $("adminOddAway").value = "2.00";
   $("adminStatus").value = "open";
   $("adminResult").value = "";
+  $("adminScoreHome").value = "";
+  $("adminScoreAway").value = "";
   $("adminHomeLogo").value = "";
   $("adminAwayLogo").value = "";
   $("adminHomeShirt").value = "";
@@ -466,6 +479,8 @@ function adminFillForm(match) {
   $("adminOddAway").value = match.odd_away ?? "2.00";
   $("adminStatus").value = match.status || "open";
   $("adminResult").value = match.result || "";
+  $("adminScoreHome").value = match.score_home ?? "";
+  $("adminScoreAway").value = match.score_away ?? "";
   $("adminHomeLogo").value = match.home_logo_url || "";
   $("adminAwayLogo").value = match.away_logo_url || "";
   $("adminHomeShirt").value = match.home_shirt_url || "";
@@ -478,14 +493,17 @@ function adminFillForm(match) {
 
 async function adminLoadData() {
   if (!profile?.is_admin) return;
-  const [mr, kr] = await Promise.all([
+  const [mr, kr, sr] = await Promise.all([
     sb.from("matches").select("*").order("featured", { ascending: false }).order("sort_order", { ascending: true }).order("match_date", { ascending: true }),
-    sb.from("markets").select("*").order("match_id").order("sort_order").order("id")
+    sb.from("markets").select("*").order("match_id").order("sort_order").order("id"),
+    sb.from("supercuotas").select("*").order("sort_order").order("id")
   ]);
   if (mr.error) throw mr.error;
   if (kr.error) throw kr.error;
+  if (sr.error) throw sr.error;
   adminMatches = mr.data || [];
   adminMarkets = kr.data || [];
+  adminSupercuotas = sr.data || [];
   renderAdminMatches();
   if (adminSelectedMatchId != null) {
     const selected = adminMatches.find(m => Number(m.id) === Number(adminSelectedMatchId));
@@ -515,6 +533,8 @@ function renderAdminMatches() {
         <button class="btn btn-secondary admin-mini" data-admin-edit="${m.id}">Editar</button>
         <button class="btn btn-ghost admin-mini" data-admin-markets="${m.id}">Cuotas</button>
         <button class="btn btn-ghost admin-mini" data-admin-close="${m.id}">Cerrar mercados</button>
+        <button class="btn btn-ghost admin-mini" data-admin-result="${m.id}">Resultado</button>
+        <button class="btn btn-danger admin-mini" data-admin-delete-match="${m.id}">Borrar</button>
       </div>
     </article>`;
   }).join("");
@@ -545,30 +565,72 @@ function renderAdminMatches() {
       adminSelectedMatchId = id;
     }, "Mercados cerrados.");
   }));
+
+  root.querySelectorAll("[data-admin-result]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.adminResult);
+    const m = adminMatches.find(x => Number(x.id) === id);
+    if (!m) return;
+    const scoreHome = prompt(`Goles de ${m.home}`, m.score_home ?? "0");
+    if (scoreHome === null) return;
+    const scoreAway = prompt(`Goles de ${m.away}`, m.score_away ?? "0");
+    if (scoreAway === null) return;
+    let result = "draw";
+    if (Number(scoreHome) > Number(scoreAway)) result = "home";
+    if (Number(scoreAway) > Number(scoreHome)) result = "away";
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_update_match_result", {
+        p_match_id:id, p_score_home:Number(scoreHome), p_score_away:Number(scoreAway),
+        p_result:result, p_status:"finished"
+      });
+      if (error) throw error;
+    }, "Resultado actualizado.");
+  }));
+
+  root.querySelectorAll("[data-admin-delete-match]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.adminDeleteMatch);
+    if (!confirm("¿Borrar este partido? Si tiene apuestas o combinadas, Supabase bloqueará el borrado para proteger el historial.")) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_delete_match", { p_match_id:id });
+      if (error) throw error;
+      if (Number(adminSelectedMatchId) === id) adminSelectedMatchId = null;
+    }, "Partido borrado.");
+  }));
 }
 
 function renderAdminMarkets(match) {
   const toolbar = $("adminMarketToolbar");
   const root = $("adminMarketsList");
+  const superRoot = $("adminSuperList");
   if (!toolbar || !root || !match) return;
+
   toolbar.classList.remove("hidden");
   $("adminSelectedMatchTitle").textContent = `${match.home} vs ${match.away}`;
   $("adminSelectedMatchMeta").textContent = `${match.sport || "Fútbol"} · ${getMatchDate(match)}`;
+
   const list = adminMarkets.filter(m => Number(m.match_id) === Number(match.id));
+
   if (!list.length) {
     root.innerHTML = `<div class="empty-state">No hay mercados. Pulsa «Añadir mercado».</div>`;
+    if (superRoot) superRoot.innerHTML = `<div class="empty-state">Crea un mercado primero.</div>`;
     return;
   }
-  root.innerHTML = list.map(m => `<div class="admin-market-row" data-market-row="${m.id}">
-    <label>Categoría<input data-field="category" value="${esc(m.category || "Resultado")}"></label>
-    <label>Nombre / selección<input data-field="name" value="${esc(m.name || "")}"></label>
-    <label>Cuota<input data-field="odd" type="number" step="0.01" min="1.01" value="${Number(m.odd).toFixed(2)}"></label>
-    <label>Estado<select data-field="open"><option value="true" ${m.is_open ? "selected" : ""}>Abierto</option><option value="false" ${!m.is_open ? "selected" : ""}>Cerrado</option></select></label>
-    <div class="market-actions">
-      <button class="btn btn-secondary" data-save-market="${m.id}">Guardar</button>
-      <button class="btn btn-ghost" data-resolve-market="${m.id}">Resolver</button>
-    </div>
-  </div>`).join("");
+
+  root.innerHTML = list.map(m => {
+    const s = adminSupercuotas.find(x => Number(x.market_id) === Number(m.id));
+    return `<div class="admin-market-row" data-market-row="${m.id}">
+      <label>Categoría<input data-field="category" value="${esc(m.category || "Resultado")}"></label>
+      <label>Nombre / selección<input data-field="name" value="${esc(m.name || "")}"></label>
+      <label>Cuota<input data-field="odd" type="number" step="0.01" min="1.01" value="${Number(m.odd).toFixed(2)}"></label>
+      <label>Estado<select data-field="open"><option value="true" ${m.is_open ? "selected" : ""}>Abierto</option><option value="false" ${!m.is_open ? "selected" : ""}>Cerrado</option></select></label>
+      <div class="market-actions">
+        <button class="btn btn-secondary" data-save-market="${m.id}">Guardar</button>
+        <button class="btn btn-ghost" data-pass-market="${m.id}">🟢 Ha pasado</button>
+        <button class="btn btn-ghost" data-fail-market="${m.id}">🔴 No ha pasado</button>
+        <button class="btn btn-ghost" data-super-market="${m.id}">⚡ ${s?.active ? "Editar supercuota" : "Supercuota"}</button>
+        <button class="btn btn-danger" data-delete-market="${m.id}">Borrar</button>
+      </div>
+    </div>`;
+  }).join("");
 
   root.querySelectorAll("[data-save-market]").forEach(b => b.addEventListener("click", async () => {
     const row = b.closest("[data-market-row]");
@@ -586,18 +648,81 @@ function renderAdminMarkets(match) {
     }, "Mercado y cuota actualizados.");
   }));
 
-  root.querySelectorAll("[data-resolve-market]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.resolveMarket);
+  root.querySelectorAll("[data-pass-market]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.passMarket);
     const m = adminMarkets.find(x => Number(x.id) === id);
     if (!m) return;
-    const winner = prompt(`Resultado exacto para «${m.name}».\n\nDebe coincidir con la selección apostada.`, m.name);
-    if (winner === null || !winner.trim()) return;
-    if (!confirm(`¿Resolver «${m.name}» como «${winner.trim()}»? Esto liquida simples y afecta a las combinadas.`)) return;
+    if (!confirm(`¿Marcar «${m.name}» como 🟢 HA PASADO?\n\nLas apuestas a esta selección ganarán y las otras selecciones del mismo mercado quedarán perdedoras.`)) return;
     await adminAction(async () => {
-      const { error } = await sb.rpc("resolve_single_market", { p_market_id:id, p_winner:winner.trim() });
+      const { error } = await sb.rpc("resolve_single_market", { p_market_id:id, p_winner:m.name });
       if (error) throw error;
-    }, "Mercado resuelto y apuestas liquidadas.");
+    }, "Selección marcada como válida y apuestas liquidadas.");
   }));
+
+  root.querySelectorAll("[data-fail-market]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.failMarket);
+    const m = adminMarkets.find(x => Number(x.id) === id);
+    if (!m) return;
+    if (!confirm(`¿Marcar «${m.name}» como 🔴 NO HA PASADO?\n\nLas apuestas a esta selección perderán. Las demás selecciones del mercado permanecen pendientes.`)) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_mark_selection_lost", { p_market_id:id, p_selection:m.name });
+      if (error) throw error;
+    }, "Selección marcada como no válida.");
+  }));
+
+  root.querySelectorAll("[data-delete-market]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.deleteMarket);
+    if (!confirm("¿Borrar esta cuota? Si ya tiene apuestas o está en combinadas, Supabase bloqueará el borrado para proteger el historial.")) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_delete_market", { p_market_id:id });
+      if (error) throw error;
+    }, "Cuota borrada.");
+  }));
+
+  root.querySelectorAll("[data-super-market]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.superMarket);
+    const m = adminMarkets.find(x => Number(x.id) === id);
+    if (!m) return;
+    const existing = adminSupercuotas.find(x => Number(x.market_id) === id);
+    const odd = Number(prompt("Nueva SUPERCUOTA", existing?.super_odd ?? Math.max(1.01, Number(m.odd) - 0.50).toFixed(2)));
+    if (!Number.isFinite(odd) || odd <= 1) { adminMsg("La supercuota debe ser mayor que 1.", "error"); return; }
+    const label = prompt("Etiqueta", existing?.label || "SUPERCUOTA");
+    if (label === null) return;
+    const image = prompt("URL imagen (opcional)", existing?.image_url || "");
+    if (image === null) return;
+    const banner = prompt("URL banner (opcional)", existing?.banner_url || "");
+    if (banner === null) return;
+    const expires = prompt("Expira en ISO (opcional), ejemplo 2026-08-12T23:59:00+02:00", existing?.expires_at || "");
+    if (expires === null) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_set_supercuota", {
+        p_market_id:id, p_super_odd:odd, p_label:label.trim() || "SUPERCUOTA",
+        p_image_url:image.trim() || null, p_banner_url:banner.trim() || null,
+        p_expires_at:expires.trim() || null, p_sort_order:0
+      });
+      if (error) throw error;
+    }, "Supercuota activada.");
+  }));
+
+  if (superRoot) {
+    const active = adminSupercuotas.filter(s => list.some(m => Number(m.id) === Number(s.market_id)));
+    superRoot.innerHTML = active.length ? active.map(s => {
+      const m = list.find(x => Number(x.id) === Number(s.market_id));
+      return `<div class="admin-super-item">
+        <div><span class="super-badge">⚡ ${esc(s.label || "SUPERCUOTA")}</span><strong>${esc(m?.name || "Mercado")}</strong><div class="muted">Normal ${Number(s.original_odd).toFixed(2)} → Super ${Number(s.super_odd).toFixed(2)}</div></div>
+        <button class="btn btn-ghost admin-mini" data-toggle-super="${s.market_id}">Desactivar</button>
+      </div>`;
+    }).join("") : `<div class="empty-state">No hay supercuotas activas en este partido.</div>`;
+
+    superRoot.querySelectorAll("[data-toggle-super]").forEach(b => b.addEventListener("click", async () => {
+      const id = Number(b.dataset.toggleSuper);
+      if (!confirm("¿Desactivar esta supercuota y restaurar la cuota original?")) return;
+      await adminAction(async () => {
+        const { error } = await sb.rpc("admin_toggle_supercuota", { p_market_id:id, p_active:false });
+        if (error) throw error;
+      }, "Supercuota desactivada.");
+    }));
+  }
 }
 
 async function adminAction(action, successText) {
@@ -632,8 +757,19 @@ async function adminSaveMatch(e) {
   await adminAction(async () => {
     const rpc = id ? "admin_update_match" : "admin_create_match";
     const params = id ? { p_match_id:id, ...values } : values;
-    const { error } = await sb.rpc(rpc, params);
+    const { data: createdId, error } = await sb.rpc(rpc, params);
     if (error) throw error;
+    const matchId = id || Number(createdId);
+    if (matchId && ($("adminScoreHome").value !== "" || $("adminScoreAway").value !== "" || $("adminResult").value)) {
+      const { error: scoreError } = await sb.rpc("admin_update_match_result", {
+        p_match_id:matchId,
+        p_score_home:$("adminScoreHome").value === "" ? null : Number($("adminScoreHome").value),
+        p_score_away:$("adminScoreAway").value === "" ? null : Number($("adminScoreAway").value),
+        p_result:$("adminResult").value || null,
+        p_status:$("adminStatus").value
+      });
+      if (scoreError) throw scoreError;
+    }
   }, id ? "Partido actualizado." : "Partido creado.");
   adminResetForm();
 }
