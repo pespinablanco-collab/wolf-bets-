@@ -213,7 +213,9 @@ function renderMatches() {
             ${teamBadge(away, awayLogo, "away")}
           </div>
           <div class="match-meta">
-            <span class="match-live-dot"></span>
+            ${match.is_live ? `<span class="live-pill">● DIRECTO${match.live_minute != null ? ` ${esc(match.live_minute)}'` : ""}</span>` : ""}
+            ${(match.score_home != null && match.score_away != null && (Number(match.score_home) !== 0 || Number(match.score_away) !== 0 || match.is_live || match.status === "finished"))
+              ? `<span class="live-score">${Number(match.score_home)} - ${Number(match.score_away)}</span>` : ""}
             <span class="muted match-date">${esc(getMatchDate(match))}</span>
           </div>
         </div>
@@ -531,7 +533,20 @@ function renderAdminMatches() {
         <div class="admin-match-teams">${esc(m.home)} <span class="muted">vs</span> ${esc(m.away)}</div>
         <span class="status ${m.status === "open" ? "won" : "pending"}">${esc(m.status || "open")}</span>
       </div>
-      <div class="admin-match-meta"><span>${esc(m.sport || "Fútbol")}</span><span>${esc(m.competition || "Sin competición")}</span><span>${esc(getMatchDate(m))}</span><span>${openMarkets} mercados abiertos</span></div>
+      <div class="admin-match-meta">
+        <span>${esc(m.sport || "Fútbol")}</span><span>${esc(m.competition || "Sin competición")}</span>
+        <span>${esc(getMatchDate(m))}</span><span>${openMarkets} mercados abiertos</span>
+        <span class="admin-live-score">Marcador: <strong>${Number(m.score_home ?? 0)} - ${Number(m.score_away ?? 0)}</strong>${m.is_live ? ` · ${m.live_minute ?? "?"}' DIRECTO` : ""}</span>
+      </div>
+      <div class="admin-live-controls" data-live-match="${m.id}">
+        <input type="number" min="0" step="1" data-live-home value="${Number(m.score_home ?? 0)}" aria-label="Goles local">
+        <span>-</span>
+        <input type="number" min="0" step="1" data-live-away value="${Number(m.score_away ?? 0)}" aria-label="Goles visitante">
+        <input type="number" min="0" step="1" data-live-minute value="${m.live_minute ?? ""}" placeholder="Min" aria-label="Minuto">
+        <button class="btn btn-secondary admin-mini" data-live-update="${m.id}">⚽ Actualizar</button>
+        <button class="btn btn-ghost admin-mini" data-live-toggle="${m.id}">${m.is_live ? "⏹ Parar directo" : "🔴 Poner directo"}</button>
+        <button class="btn btn-ghost admin-mini" data-live-finish="${m.id}">🏁 Finalizar</button>
+      </div>
       <div class="admin-match-actions">
         <button class="btn btn-secondary admin-mini" data-admin-edit="${m.id}">Editar</button>
         <button class="btn btn-ghost admin-mini" data-admin-markets="${m.id}">Cuotas</button>
@@ -541,6 +556,52 @@ function renderAdminMatches() {
       </div>
     </article>`;
   }).join("");
+
+  root.querySelectorAll("[data-live-update]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.liveUpdate);
+    const box = root.querySelector(`[data-live-match="${id}"]`);
+    const home = Number(box.querySelector("[data-live-home]").value);
+    const away = Number(box.querySelector("[data-live-away]").value);
+    const minuteRaw = box.querySelector("[data-live-minute]").value.trim();
+    const minute = minuteRaw === "" ? null : Number(minuteRaw);
+    if (!Number.isInteger(home) || home < 0 || !Number.isInteger(away) || away < 0 || (minute !== null && (!Number.isInteger(minute) || minute < 0))) {
+      adminMsg("Marcador/minuto no válidos.", "error"); return;
+    }
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_update_live_result", {
+        p_match_id:id, p_score_home:home, p_score_away:away,
+        p_live_minute:minute, p_is_live:true, p_status:null
+      });
+      if (error) throw error;
+    }, "Marcador actualizado en directo.");
+  }));
+
+  root.querySelectorAll("[data-live-toggle]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.liveToggle);
+    const m = adminMatches.find(x => Number(x.id) === id);
+    const next = !Boolean(m?.is_live);
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_set_match_live", { p_match_id:id, p_is_live:next });
+      if (error) throw error;
+    }, next ? "Partido puesto en DIRECTO." : "Partido sacado de DIRECTO.");
+  }));
+
+  root.querySelectorAll("[data-live-finish]").forEach(b => b.addEventListener("click", async () => {
+    const id = Number(b.dataset.liveFinish);
+    const box = root.querySelector(`[data-live-match="${id}"]`);
+    const home = Number(box.querySelector("[data-live-home]").value);
+    const away = Number(box.querySelector("[data-live-away]").value);
+    if (!Number.isInteger(home) || home < 0 || !Number.isInteger(away) || away < 0) {
+      adminMsg("Marcador no válido.", "error"); return;
+    }
+    if (!confirm(`¿Finalizar el partido con ${home}-${away}?`)) return;
+    await adminAction(async () => {
+      const { error } = await sb.rpc("admin_finish_match", {
+        p_match_id:id, p_score_home:home, p_score_away:away
+      });
+      if (error) throw error;
+    }, "Partido finalizado y resultado guardado.");
+  }));
 
   root.querySelectorAll("[data-admin-edit]").forEach(b => b.addEventListener("click", () => {
     const m = adminMatches.find(x => Number(x.id) === Number(b.dataset.adminEdit));
@@ -581,12 +642,11 @@ function renderAdminMatches() {
     if (Number(scoreHome) > Number(scoreAway)) result = "home";
     if (Number(scoreAway) > Number(scoreHome)) result = "away";
     await adminAction(async () => {
-      const { error } = await sb.rpc("admin_update_match_result", {
-        p_match_id:id, p_score_home:Number(scoreHome), p_score_away:Number(scoreAway),
-        p_result:result, p_status:"finished"
+      const { error } = await sb.rpc("admin_finish_match", {
+        p_match_id:id, p_score_home:Number(scoreHome), p_score_away:Number(scoreAway)
       });
       if (error) throw error;
-    }, "Resultado actualizado.");
+    }, "Resultado final actualizado.");
   }));
 
   root.querySelectorAll("[data-admin-delete-match]").forEach(b => b.addEventListener("click", async () => {
