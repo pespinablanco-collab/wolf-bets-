@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Wolf Bets V5</title>
+  <title>Pablo23 Bets</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
-    <div>
+    <div class="top-brand">
       <a class="brand-logo" href="#"><img src="logo.png" alt="Pablo23 Bets"></a>
-      <div class="subtitle">Casa privada · V5 · Simples + Combinadas</div>
+      <span class="live-pill"><i></i> CASA PRIVADA</span>
     </div>
     <div class="account">
       <span id="userName">No conectado</span>
@@ -22,8 +22,9 @@
   <main class="container">
     <section id="authView" class="card auth-card">
       <div class="auth-logo"><img src="logo.png" alt="Pablo23 Bets"></div>
+      <span class="eyebrow">PABLO23 BETS</span>
       <h1>Entrar</h1>
-      <p class="muted">Accede con tu cuenta de Supabase.</p>
+      <p class="muted">Accede a tu cuenta y disfruta de tus mercados.</p>
       <form id="authForm">
         <label>Email
           <input id="email" type="email" autocomplete="email" required>
@@ -39,62 +40,107 @@
       <div id="authMessage" class="message"></div>
     </section>
 
-    <section id="appView" class="hidden">
-      <div class="page-head">
-        <div>
-          <div><span class="eyebrow">PABLO23 BETS</span><h1>Partidos</h1>
-          <p class="muted">Apuesta con cabeza, gana con estilo.</p></div>
-        </div>
-        <button id="refreshBtn" class="btn btn-secondary">↻ Actualizar</button>
-      </div>
+    <section id="appView" class="hidden app-shell">
+      <aside class="sidebar">
+        <div class="side-brand"><img src="logo.png" alt="Pablo23 Bets"></div>
 
-      <div id="globalMessage" class="message"></div>
-      <div id="matchesList"></div>
+        <div class="side-title">Deportes</div>
+        <nav class="sports-nav">
+          <button class="sport-item active"><span class="sport-icon">⚡</span><span>Supercuotas</span><b>›</b></button>
+          <button class="sport-item"><span class="sport-icon">⚽</span><span>Fútbol</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🎾</span><span>Tenis</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏀</span><span>Baloncesto</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">♟</span><span>Ajedrez</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏎️</span><span>Automovilismo</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏸</span><span>Bádminton</span><b>⌄</b></button>
+        </nav>
 
-      <section class="card combo-slip">
-        <div class="combo-glow"></div>
-        <div class="section-title">
-          <div>
-            <h2>🎯 Combinada</h2>
-            <p class="muted">Necesitas al menos 2 selecciones de mercados diferentes.</p>
-          </div>
-          <button id="clearComboBtn" class="btn btn-ghost">Vaciar</button>
+        <div class="side-title visual-title">Contenido visual</div>
+        <div class="side-visual">
+          <img src="assets/promos/promo-placeholder.jpg" alt="Promoción">
+          <div><strong>Añade tus diseños</strong><span>Promos · camisetas · jugadores</span></div>
         </div>
-        <div id="comboSelections" class="empty-state">No has seleccionado ninguna apuesta.</div>
-        <div id="comboFooter" class="combo-footer hidden">
-          <div>
-            <span class="muted">Cuota total</span>
-            <strong id="comboOdd">1.00</strong>
+      </aside>
+
+      <section class="main-feed">
+        <div class="hero-banner">
+          <img src="assets/presentation/banner-placeholder.jpg" alt="Banner Pablo23 Bets">
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <span class="eyebrow">PABLO23 BETS</span>
+            <h1>Tu casa. Tus reglas.</h1>
+            <p>Mercados, supercuotas y combinadas en un solo sitio.</p>
           </div>
-          <div>
-            <span class="muted">Premio potencial</span>
-            <strong id="comboPotential">0</strong>
-          </div>
-          <div class="stake-box">
-            <label>Apuesta
-              <input id="comboStake" type="number" min="1" step="1" value="10">
-            </label>
-            <button id="placeComboBtn" class="btn btn-primary">Apostar combinada</button>
-          </div>
+          <button id="refreshBtn" class="btn btn-secondary hero-refresh">↻ Actualizar</button>
         </div>
+
+        <div class="quick-tabs">
+          <button class="quick-tab active">Todos</button>
+          <button class="quick-tab">🔥 Destacados</button>
+          <button class="quick-tab">⚡ Supercuotas</button>
+          <button class="quick-tab">🎯 Combinadas</button>
+        </div>
+
+        <div id="globalMessage" class="message"></div>
+        <div class="section-heading">
+          <div><span class="eyebrow">MERCADOS ABIERTOS</span><h2>Partidos de hoy</h2></div>
+          <span class="section-counter">LIVE</span>
+        </div>
+        <div id="matchesList"></div>
+
+        <section class="card history-card">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">TU ACTIVIDAD</span>
+              <h2>Mis apuestas</h2>
+              <p class="muted">Historial de simples y combinadas.</p>
+            </div>
+            <button id="refreshHistoryBtn" class="btn btn-secondary">Actualizar</button>
+          </div>
+          <div id="betsHistory"></div>
+        </section>
       </section>
 
-      <section class="card history-card">
-        <div class="section-title">
-          <div>
-            <h2>Mis apuestas</h2>
-            <p class="muted">Historial de simples y combinadas.</p>
+      <aside class="bet-column">
+        <section class="card combo-slip">
+          <div class="combo-glow"></div>
+          <div class="slip-head">
+            <div>
+              <span class="eyebrow">BET SLIP</span>
+              <h2>Mi combinada</h2>
+              <p class="muted">Selecciona 2 o más cuotas.</p>
+            </div>
+            <button id="clearComboBtn" class="clear-btn" title="Vaciar">⌫</button>
           </div>
-          <button id="refreshHistoryBtn" class="btn btn-secondary">Actualizar</button>
+          <div class="slip-status"><span></span><b id="comboCount">0</b> selecciones</div>
+          <div id="comboSelections" class="empty-state">
+            <div class="empty-slip-art">🎟️</div>
+            <strong>¡Tu cesta está vacía!</strong>
+            <span>Añade selecciones haciendo clic en las cuotas.</span>
+          </div>
+          <div id="comboFooter" class="combo-footer hidden">
+            <div class="combo-stat"><span>Cuota total</span><strong id="comboOdd">1.00</strong></div>
+            <div class="combo-stat"><span>Premio potencial</span><strong id="comboPotential">0</strong></div>
+            <div class="stake-box">
+              <label>Apuesta
+                <input id="comboStake" type="number" min="1" step="1" value="10">
+              </label>
+              <button id="placeComboBtn" class="btn btn-primary">Apostar combinada</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="shirt-showcase card">
+          <div class="showcase-copy"><span class="eyebrow">GALERÍA</span><strong>Tu plantilla visual</strong><span>Añade camisetas, jugadores o escudos.</span></div>
+          <img src="assets/team-shirts/shirt-placeholder.jpg" alt="Camiseta">
         </div>
-        <div id="betsHistory"></div>
-      </section>
+      </aside>
     </section>
   </main>
 
   <div id="loading" class="loading hidden">Cargando…</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="pablo23.js?v=6.0"></script>
+  <script src="pablo23.js?v=7.0"></script>
 </body>
 </html>

@@ -11,6 +11,13 @@ let matches = [];
 let markets = [];
 let combo = new Map();
 
+// Escudos: puedes usar una URL en la fila de matches o un archivo local en GitHub.
+// Ejemplo: TEAM_LOGOS["Real Madrid"] = "team-logos/real-madrid.png";
+const TEAM_LOGOS = {
+  // "Real Madrid": "team-logos/real-madrid.png",
+  // "Barcelona": "team-logos/barcelona.png",
+};
+
 const $ = id => document.getElementById(id);
 
 function money(value) {
@@ -44,6 +51,30 @@ function getMatchTitle(match) {
   const home = match.home_team ?? match.home ?? match.team_home ?? "Local";
   const away = match.away_team ?? match.away ?? match.team_away ?? "Visitante";
   return `${home} — ${away}`;
+}
+
+function normalizeTeamName(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getTeamLogo(match, side, teamName) {
+  const candidates = side === "home"
+    ? [match.home_logo, match.home_team_logo, match.home_crest, match.home_badge, match.home_image]
+    : [match.away_logo, match.away_team_logo, match.away_crest, match.away_badge, match.away_image];
+  const direct = candidates.find(Boolean);
+  if (direct) return String(direct);
+
+  const key = normalizeTeamName(teamName);
+  const mapped = Object.entries(TEAM_LOGOS).find(([name]) => normalizeTeamName(name) === key);
+  return mapped ? mapped[1] : "";
+}
+
+function teamBadge(teamName, logo, side) {
+  const initials = String(teamName || "?").split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0]).join("").toUpperCase() || "?";
+  return `<div class="team-badge" data-side="${side}">
+    ${logo ? `<img src="${esc(logo)}" alt="Escudo ${esc(teamName)}" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">` : ""}
+    <span class="team-fallback" ${logo ? 'style="display:none"' : ""}>${esc(initials)}</span>
+  </div>`;
 }
 
 function getMatchDate(match) {
@@ -99,50 +130,75 @@ function renderMatches() {
 
   root.innerHTML = matches.map(match => {
     const ms = markets.filter(m => Number(m.match_id) === Number(match.id));
+    const home = match.home_team ?? match.home ?? match.team_home ?? "Local";
+    const away = match.away_team ?? match.away ?? match.team_away ?? "Visitante";
+    const homeLogo = getTeamLogo(match, "home", home);
+    const awayLogo = getTeamLogo(match, "away", away);
+
     if (!ms.length) {
       return `
         <article class="card match-card">
           <div class="match-header">
-            <div class="match-title">${esc(getMatchTitle(match))}</div>
-            <span class="muted">${esc(getMatchDate(match))}</span>
+            <div class="teams-line">
+              ${teamBadge(home, homeLogo, "home")}
+              <div class="team-names"><strong>${esc(home)}</strong><span>VS</span><strong>${esc(away)}</strong></div>
+              ${teamBadge(away, awayLogo, "away")}
+            </div>
+            <span class="muted match-date">${esc(getMatchDate(match))}</span>
           </div>
           <div class="empty-state">No hay mercados abiertos.</div>
         </article>`;
     }
 
     const groups = {};
-    ms.forEach(m => (groups[m.category] ||= []).push(m));
+    ms.forEach(m => (groups[m.category || "Mercados"] ||= []).push(m));
 
     const marketHtml = Object.entries(groups).map(([category, list]) => `
       <div class="market-group">
         <h3>${esc(category)}</h3>
-        ${list.map(m => {
-          const selected = combo.has(String(m.id));
-          return `
-            <button class="market-btn ${selected ? "selected" : ""}"
-                    data-market-id="${m.id}">
-              <span class="market-name">${esc(m.name)}</span>
-              <span class="odd">${Number(m.odd).toFixed(2)}</span>
-            </button>`;
-        }).join("")}
+        <div class="market-list">
+          ${list.map(m => {
+            const selected = combo.has(String(m.id));
+            return `
+              <div class="market-row ${selected ? "selected" : ""}">
+                <button class="market-main ${selected ? "selected" : ""}" data-market-id="${m.id}" title="Añadir a combinada">
+                  <span class="market-name">${esc(m.name)}</span>
+                  <span class="odd">${Number(m.odd).toFixed(2)}</span>
+                </button>
+                <button class="simple-action" data-simple-id="${m.id}" title="Apuesta simple">Simple</button>
+              </div>`;
+          }).join("")}
+        </div>
       </div>
     `).join("");
 
     return `
       <article class="card match-card">
         <div class="match-header">
-          <div class="match-title">${esc(getMatchTitle(match))}</div>
-          <span class="muted">${esc(getMatchDate(match))}</span>
+          <div class="teams-line">
+            ${teamBadge(home, homeLogo, "home")}
+            <div class="team-names"><strong>${esc(home)}</strong><span>VS</span><strong>${esc(away)}</strong></div>
+            ${teamBadge(away, awayLogo, "away")}
+          </div>
+          <div class="match-meta">
+            <span class="match-live-dot"></span>
+            <span class="muted match-date">${esc(getMatchDate(match))}</span>
+          </div>
         </div>
         <div class="market-grid">${marketHtml}</div>
       </article>`;
   }).join("");
 
-  root.querySelectorAll(".market-btn").forEach(btn => {
+  root.querySelectorAll("[data-market-id]").forEach(btn => {
     btn.addEventListener("click", () => toggleCombo(btn.dataset.marketId));
   });
+  root.querySelectorAll("[data-simple-id]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const market = markets.find(m => String(m.id) === String(btn.dataset.simpleId));
+      if (market) placeSimpleBet(market);
+    });
+  });
 }
-
 function toggleCombo(id) {
   id = String(id);
   const market = markets.find(m => String(m.id) === id);
@@ -161,6 +217,9 @@ function toggleCombo(id) {
 function renderCombo() {
   const root = $("comboSelections");
   const footer = $("comboFooter");
+
+  const count = document.getElementById("comboCount");
+  if (count) count.textContent = String(combo.size);
 
   if (!combo.size) {
     root.className = "empty-state";

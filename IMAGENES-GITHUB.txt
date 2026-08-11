@@ -1,0 +1,18 @@
+PABLO23 BETS - COMO AÑADIR IMAGENES
+
+BANNER:
+Reemplaza assets/presentation/banner-placeholder.jpg por tu banner.
+
+PROMOS:
+Reemplaza assets/promos/promo-placeholder.jpg.
+
+CAMISETAS:
+Reemplaza assets/team-shirts/shirt-placeholder.jpg.
+
+ESCUDOS:
+Puedes ponerlos en assets/team-logos/ y asignarlos en TEAM_LOGOS dentro de pablo23.js:
+"Nombre Equipo": "assets/team-logos/nombre.png"
+
+O directamente guardar en Supabase el logo en home_logo / away_logo (o cualquiera de los campos de logo soportados por el JS).
+
+No cambies los IDs de index.html: el login, Supabase, apuestas simples y combinadas dependen de ellos.
