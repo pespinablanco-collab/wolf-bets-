@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pablo23 Bets</title>
+  <link rel="stylesheet" href="style.css?v=9.0">
+</head>
+<body>
+  <header class="topbar">
+    <div class="top-brand">
+      <a class="brand-logo" href="#"><img src="logo.png" alt="Pablo23 Bets"></a>
+      <span class="live-pill"><i></i> CASA PRIVADA</span>
+    </div>
+    <div class="account">
+      <span id="userName">No conectado</span>
+      <span id="balance" class="balance">—</span>
+      <button id="logoutBtn" class="btn btn-ghost hidden">Salir</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="authView" class="card auth-card">
+      <div class="auth-logo"><img src="logo.png" alt="Pablo23 Bets"></div>
+      <span class="eyebrow">PABLO23 BETS</span>
+      <h1>Entrar</h1>
+      <p class="muted">Accede a tu cuenta y disfruta de tus mercados.</p>
+      <form id="authForm">
+        <label>Email
+          <input id="email" type="email" autocomplete="email" required>
+        </label>
+        <label>Contraseña
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <div class="row">
+          <button class="btn btn-primary" type="submit">Entrar</button>
+          <button class="btn btn-secondary" type="button" id="registerBtn">Crear cuenta</button>
+        </div>
+      </form>
+      <div id="authMessage" class="message"></div>
+    </section>
+
+    <section id="appView" class="hidden app-shell">
+      <aside class="sidebar">
+        <div class="side-brand"><img src="logo.png" alt="Pablo23 Bets"></div>
+
+        <div class="side-title">Deportes</div>
+        <nav class="sports-nav">
+          <button class="sport-item active"><span class="sport-icon">⚡</span><span>Supercuotas</span><b>›</b></button>
+          <button class="sport-item"><span class="sport-icon">⚽</span><span>Fútbol</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🎾</span><span>Tenis</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏀</span><span>Baloncesto</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">♟</span><span>Ajedrez</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏎️</span><span>Automovilismo</span><b>⌄</b></button>
+          <button class="sport-item"><span class="sport-icon">🏸</span><span>Bádminton</span><b>⌄</b></button>
+        </nav>
+
+        <div class="side-title visual-title">Contenido visual</div>
+        <div class="side-visual">
+          <img src="assets/promos/promo-placeholder.jpg" alt="Promoción">
+          <div><strong>Añade tus diseños</strong><span>Promos · camisetas · jugadores</span></div>
+        </div>
+      </aside>
+
+      <section class="main-feed">
+        <div class="hero-banner">
+          <img src="assets/presentation/banner-placeholder.jpg" alt="Banner Pablo23 Bets">
+          <div class="hero-overlay"></div>
+          <div class="hero-content">
+            <span class="eyebrow">PABLO23 BETS</span>
+            <h1>Tu casa. Tus reglas.</h1>
+            <p>Mercados, supercuotas y combinadas en un solo sitio.</p>
+          </div>
+          <button id="refreshBtn" class="btn btn-secondary hero-refresh">↻ Actualizar</button>
+        </div>
+
+        <div class="quick-tabs">
+          <button class="quick-tab active">Todos</button>
+          <button class="quick-tab">🔥 Destacados</button>
+          <button class="quick-tab">⚡ Supercuotas</button>
+          <button class="quick-tab">🎯 Combinadas</button>
+        </div>
+
+        <div id="globalMessage" class="message"></div>
+        <div class="section-heading">
+          <div><span class="eyebrow">MERCADOS ABIERTOS</span><h2>Partidos de hoy</h2></div>
+          <span class="section-counter">LIVE</span>
+        </div>
+        <div id="matchesList"></div>
+
+        <section class="card history-card">
+          <div class="section-title">
+            <div>
+              <span class="eyebrow">TU ACTIVIDAD</span>
+              <h2>Mis apuestas</h2>
+              <p class="muted">Historial de simples y combinadas.</p>
+            </div>
+            <button id="refreshHistoryBtn" class="btn btn-secondary">Actualizar</button>
+          </div>
+          <div id="betsHistory"></div>
+        </section>
+      </section>
+
+      <aside class="bet-column">
+        <section class="card combo-slip">
+          <div class="combo-glow"></div>
+          <div class="slip-head">
+            <div>
+              <span class="eyebrow">BET SLIP</span>
+              <h2>Mi combinada</h2>
+              <p class="muted">Selecciona 2 o más cuotas.</p>
+            </div>
+            <button id="clearComboBtn" class="clear-btn" title="Vaciar">⌫</button>
+          </div>
+          <div class="slip-status"><span></span><b id="comboCount">0</b> selecciones</div>
+          <div id="comboSelections" class="empty-state">
+            <div class="empty-slip-art">🎟️</div>
+            <strong>¡Tu cesta está vacía!</strong>
+            <span>Añade selecciones haciendo clic en las cuotas.</span>
+          </div>
+          <div id="comboFooter" class="combo-footer hidden">
+            <div class="combo-stat"><span>Cuota total</span><strong id="comboOdd">1.00</strong></div>
+            <div class="combo-stat"><span>Premio potencial</span><strong id="comboPotential">0</strong></div>
+            <div class="stake-box">
+              <label>Apuesta
+                <input id="comboStake" type="number" min="1" step="1" value="10">
+              </label>
+              <button id="placeComboBtn" class="btn btn-primary">Apostar combinada</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="shirt-showcase card">
+          <div class="showcase-copy"><span class="eyebrow">GALERÍA</span><strong>Tu plantilla visual</strong><span>Añade camisetas, jugadores o escudos.</span></div>
+          <img src="assets/team-shirts/shirt-placeholder.jpg" alt="Camiseta">
+        </div>
+      </aside>
+    </section>
+
+      <section id="adminPanel" class="admin-panel hidden">
+        <div class="admin-head">
+          <div>
+            <span class="eyebrow">CONTROL TOTAL</span>
+            <h2>👑 Panel de administrador</h2>
+            <p class="muted">Crea partidos, cambia cuotas, gestiona mercados y prepara el contenido visual.</p>
+          </div>
+          <div class="admin-head-actions">
+            <button id="adminRefreshBtn" class="btn btn-secondary">↻ Actualizar</button>
+            <button id="adminNewMatchBtn" class="btn btn-primary">＋ Añadir partido</button>
+          </div>
+        </div>
+
+        <div id="adminMessage" class="message"></div>
+
+        <div class="admin-grid">
+          <section class="admin-card">
+            <div class="admin-card-head"><div><span class="eyebrow">PARTIDOS</span><h3>Gestionar partidos</h3></div><span id="adminMatchCount" class="admin-count">0</span></div>
+            <div id="adminMatchesList" class="admin-matches-list"></div>
+          </section>
+
+          <section id="adminEditor" class="admin-card admin-editor">
+            <div class="admin-card-head"><div><span class="eyebrow">EDITOR</span><h3 id="adminEditorTitle">Nuevo partido</h3></div><button id="adminCancelEditBtn" type="button" class="btn btn-ghost">Guardar borrador</button></div>
+            <form id="adminMatchForm" class="admin-form">
+              <input id="adminMatchId" type="hidden">
+              <div class="admin-form-grid two">
+                <label>Equipo local<input id="adminHome" required placeholder="Real Madrid"></label>
+                <label>Equipo visitante<input id="adminAway" required placeholder="Barcelona"></label>
+              </div>
+              <div class="admin-form-grid three">
+                <label>Fecha y hora<input id="adminDate" type="datetime-local" required></label>
+                <label>Deporte<input id="adminSport" value="Fútbol"></label>
+                <label>Competición<input id="adminCompetition" placeholder="LaLiga"></label>
+              </div>
+              <div class="admin-form-grid three">
+                <label>Cuota local<input id="adminOddHome" type="number" step="0.01" min="1.01" value="2.00"></label>
+                <label>Cuota empate<input id="adminOddDraw" type="number" step="0.01" min="1.01" value="3.00"></label>
+                <label>Cuota visitante<input id="adminOddAway" type="number" step="0.01" min="1.01" value="2.00"></label>
+              </div>
+              <div class="admin-form-grid four">
+                <label>Estado<select id="adminStatus"><option value="open">Abierto</option><option value="closed">Cerrado</option><option value="finished">Finalizado</option><option value="cancelled">Cancelado</option></select></label>
+                <label>Resultado<select id="adminResult"><option value="">Sin resolver</option><option value="home">Gana local</option><option value="draw">Empate</option><option value="away">Gana visitante</option></select></label>
+                <label>Goles local<input id="adminScoreHome" type="number" min="0" step="1" placeholder="0"></label>
+                <label>Goles visitante<input id="adminScoreAway" type="number" min="0" step="1" placeholder="0"></label>
+              </div>
+              <div class="admin-media-box">
+                <div class="admin-media-title">🖼️ Imágenes y escudos</div>
+                <div class="admin-form-grid two">
+                  <label>URL escudo local<input id="adminHomeLogo" placeholder="https://..."></label>
+                  <label>URL escudo visitante<input id="adminAwayLogo" placeholder="https://..."></label>
+                  <label>URL camiseta local<input id="adminHomeShirt" placeholder="https://..."></label>
+                  <label>URL camiseta visitante<input id="adminAwayShirt" placeholder="https://..."></label>
+                  <label>Imagen del partido<input id="adminMatchImage" placeholder="https://..."></label>
+                  <label>Banner<input id="adminBanner" placeholder="https://..."></label>
+                </div>
+              </div>
+              <div class="admin-checks"><label class="check-label"><input id="adminFeatured" type="checkbox"> Partido destacado</label><label class="sort-field">Orden<input id="adminSortOrder" type="number" value="0"></label></div>
+              <div class="admin-draft-box">
+                <div class="admin-draft-head"><div><strong>🎯 Selecciones del partido</strong><span class="muted">Puedes prepararlas antes de guardar el partido.</span></div><button id="adminAddDraftMarketBtn" type="button" class="btn btn-secondary admin-mini">＋ Añadir selección</button></div>
+                <div id="adminDraftMarkets" class="admin-draft-list"><div class="muted">No hay selecciones guardadas en el borrador.</div></div>
+              </div>
+              <button class="btn btn-primary admin-save" type="submit">Guardar partido</button>
+            </form>
+          </section>
+        </div>
+
+        <section class="admin-card admin-markets">
+          <div class="admin-card-head"><div><span class="eyebrow">CUOTAS Y MERCADOS</span><h3>Gestionar cuotas</h3></div><span class="muted">Selecciona un partido arriba</span></div>
+          <div id="adminMarketToolbar" class="admin-market-toolbar hidden">
+            <div><strong id="adminSelectedMatchTitle">—</strong><span id="adminSelectedMatchMeta" class="muted"></span></div>
+            <button id="adminAddMarketBtn" class="btn btn-primary">＋ Añadir mercado</button>
+          </div>
+          <div id="adminMarketsList" class="admin-markets-list"><div class="empty-state">Selecciona un partido para editar sus mercados y cuotas.</div></div>
+        </section>
+
+        <section class="admin-card admin-super-card">
+          <div class="admin-card-head">
+            <div><span class="eyebrow">PROMOCIONES</span><h3>⚡ Supercuotas</h3></div>
+            <span class="muted">Convierte cualquier cuota en una oferta destacada</span>
+          </div>
+          <div id="adminSuperList" class="admin-super-list"><div class="empty-state">Selecciona un mercado para gestionar su supercuota.</div></div>
+        </section>
+      </section>
+
+  </main>
+
+  <div id="liveEditModal" class="live-edit-modal hidden" role="dialog" aria-modal="true" aria-labelledby="liveEditTitle">
+    <div class="live-edit-card">
+      <div class="live-edit-head"><div><span class="eyebrow">CONTROL EN DIRECTO</span><h3 id="liveEditTitle">Partido</h3></div><button id="liveEditCloseBtn" type="button" class="btn btn-ghost">✕</button></div>
+      <input id="liveEditMatchId" type="hidden">
+      <div class="live-edit-score-grid">
+        <label>Goles local<input id="liveEditHome" type="number" min="0" step="1"></label>
+        <div class="live-edit-dash">-</div>
+        <label>Goles visitante<input id="liveEditAway" type="number" min="0" step="1"></label>
+      </div>
+      <div class="live-edit-grid">
+        <label>Minuto<input id="liveEditMinute" type="number" min="0" step="1" placeholder="Ej. 67"></label>
+        <label class="live-check"><input id="liveEditIsLive" type="checkbox"> 🔴 Partido en directo</label>
+      </div>
+      <div class="live-edit-actions"><button id="liveEditSaveBtn" type="button" class="btn btn-primary">⚽ Actualizar resultado</button><button id="liveEditFinishBtn" type="button" class="btn btn-danger">🏁 Finalizar partido</button></div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading hidden">Cargando…</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="pablo23.js?v=15.0"></script>
+</body>
+</html>
