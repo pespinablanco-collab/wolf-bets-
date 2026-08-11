@@ -59,8 +59,8 @@ function normalizeTeamName(value) {
 
 function getTeamLogo(match, side, teamName) {
   const candidates = side === "home"
-    ? [match.home_logo, match.home_team_logo, match.home_crest, match.home_badge, match.home_image]
-    : [match.away_logo, match.away_team_logo, match.away_crest, match.away_badge, match.away_image];
+    ? [match.home_logo_url, match.home_logo, match.home_team_logo, match.home_crest, match.home_badge, match.home_image]
+    : [match.away_logo_url, match.away_logo, match.away_team_logo, match.away_crest, match.away_badge, match.away_image];
   const direct = candidates.find(Boolean);
   if (direct) return String(direct);
 
@@ -430,6 +430,8 @@ let adminSelectedMatchId = null;
 let adminMatches = [];
 let adminMarkets = [];
 let adminSupercuotas = [];
+let adminDraftMarkets = [];
+const ADMIN_DRAFT_KEY = "pablo23_admin_match_draft_v1";
 
 function adminMsg(text, type = "") {
   const el = $("adminMessage");
@@ -446,54 +448,120 @@ function localDateTimeValue(value) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function adminResetForm() {
-  $("adminMatchId").value = "";
-  $("adminEditorTitle").textContent = "Nuevo partido";
-  $("adminHome").value = "";
-  $("adminAway").value = "";
-  $("adminDate").value = localDateTimeValue(new Date(Date.now() + 3600000));
-  $("adminSport").value = "Fútbol";
-  $("adminCompetition").value = "";
-  $("adminOddHome").value = "2.00";
-  $("adminOddDraw").value = "3.00";
-  $("adminOddAway").value = "2.00";
-  $("adminStatus").value = "open";
-  $("adminResult").value = "";
-  $("adminScoreHome").value = "";
-  $("adminScoreAway").value = "";
-  $("adminHomeLogo").value = "";
-  $("adminAwayLogo").value = "";
-  $("adminHomeShirt").value = "";
-  $("adminAwayShirt").value = "";
-  $("adminMatchImage").value = "";
-  $("adminBanner").value = "";
-  $("adminFeatured").checked = false;
-  $("adminSortOrder").value = "0";
+function readAdminDraft() {
+  try { return JSON.parse(localStorage.getItem(ADMIN_DRAFT_KEY) || "null"); } catch { return null; }
+}
+
+function draftFormValues() {
+  return {
+    home:$('adminHome')?.value || "", away:$('adminAway')?.value || "",
+    date:$('adminDate')?.value || "", sport:$('adminSport')?.value || "Fútbol",
+    competition:$('adminCompetition')?.value || "", oddHome:$('adminOddHome')?.value || "2.00",
+    oddDraw:$('adminOddDraw')?.value || "3.00", oddAway:$('adminOddAway')?.value || "2.00",
+    status:$('adminStatus')?.value || "open", result:$('adminResult')?.value || "",
+    scoreHome:$('adminScoreHome')?.value || "", scoreAway:$('adminScoreAway')?.value || "",
+    homeLogo:$('adminHomeLogo')?.value || "", awayLogo:$('adminAwayLogo')?.value || "",
+    homeShirt:$('adminHomeShirt')?.value || "", awayShirt:$('adminAwayShirt')?.value || "",
+    matchImage:$('adminMatchImage')?.value || "", banner:$('adminBanner')?.value || "",
+    featured:Boolean($('adminFeatured')?.checked), sortOrder:$('adminSortOrder')?.value || "0"
+  };
+}
+
+function saveAdminDraft() {
+  if (!$('adminMatchId') || $('adminMatchId').value) return;
+  try {
+    localStorage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({form:draftFormValues(), markets:adminDraftMarkets}));
+  } catch (e) { console.warn('No se pudo guardar el borrador', e); }
+}
+
+function clearAdminDraft() {
+  localStorage.removeItem(ADMIN_DRAFT_KEY);
+  adminDraftMarkets = [];
+}
+
+function restoreAdminDraft() {
+  const draft = readAdminDraft();
+  if (!draft?.form) return false;
+  const f = draft.form;
+  $('adminMatchId').value = "";
+  $('adminEditorTitle').textContent = "Nuevo partido · Borrador recuperado";
+  $('adminHome').value = f.home || "";
+  $('adminAway').value = f.away || "";
+  $('adminDate').value = f.date || localDateTimeValue(new Date(Date.now() + 3600000));
+  $('adminSport').value = f.sport || "Fútbol";
+  $('adminCompetition').value = f.competition || "";
+  $('adminOddHome').value = f.oddHome || "2.00";
+  $('adminOddDraw').value = f.oddDraw || "3.00";
+  $('adminOddAway').value = f.oddAway || "2.00";
+  $('adminStatus').value = f.status || "open";
+  $('adminResult').value = f.result || "";
+  $('adminScoreHome').value = f.scoreHome || "";
+  $('adminScoreAway').value = f.scoreAway || "";
+  $('adminHomeLogo').value = f.homeLogo || "";
+  $('adminAwayLogo').value = f.awayLogo || "";
+  $('adminHomeShirt').value = f.homeShirt || "";
+  $('adminAwayShirt').value = f.awayShirt || "";
+  $('adminMatchImage').value = f.matchImage || "";
+  $('adminBanner').value = f.banner || "";
+  $('adminFeatured').checked = Boolean(f.featured);
+  $('adminSortOrder').value = f.sortOrder ?? 0;
+  adminDraftMarkets = Array.isArray(draft.markets) ? draft.markets : [];
+  renderDraftMarkets();
+  return true;
+}
+
+function adminResetForm({keepDraft=false} = {}) {
+  if (!keepDraft) clearAdminDraft();
+  $('adminMatchId').value = "";
+  $('adminEditorTitle').textContent = "Nuevo partido";
+  $('adminHome').value = "";
+  $('adminAway').value = "";
+  $('adminDate').value = localDateTimeValue(new Date(Date.now() + 3600000));
+  $('adminSport').value = "Fútbol";
+  $('adminCompetition').value = "";
+  $('adminOddHome').value = "2.00";
+  $('adminOddDraw').value = "3.00";
+  $('adminOddAway').value = "2.00";
+  $('adminStatus').value = "open";
+  $('adminResult').value = "";
+  $('adminScoreHome').value = "";
+  $('adminScoreAway').value = "";
+  $('adminHomeLogo').value = "";
+  $('adminAwayLogo').value = "";
+  $('adminHomeShirt').value = "";
+  $('adminAwayShirt').value = "";
+  $('adminMatchImage').value = "";
+  $('adminBanner').value = "";
+  $('adminFeatured').checked = false;
+  $('adminSortOrder').value = "0";
+  if (!keepDraft) renderDraftMarkets();
 }
 
 function adminFillForm(match) {
-  $("adminMatchId").value = match.id;
-  $("adminEditorTitle").textContent = `Editar #${match.id}`;
-  $("adminHome").value = match.home || "";
-  $("adminAway").value = match.away || "";
-  $("adminDate").value = localDateTimeValue(match.match_date);
-  $("adminSport").value = match.sport || "Fútbol";
-  $("adminCompetition").value = match.competition || "";
-  $("adminOddHome").value = match.odd_home ?? "2.00";
-  $("adminOddDraw").value = match.odd_draw ?? "3.00";
-  $("adminOddAway").value = match.odd_away ?? "2.00";
-  $("adminStatus").value = match.status || "open";
-  $("adminResult").value = match.result || "";
-  $("adminScoreHome").value = match.score_home ?? "";
-  $("adminScoreAway").value = match.score_away ?? "";
-  $("adminHomeLogo").value = match.home_logo_url || "";
-  $("adminAwayLogo").value = match.away_logo_url || "";
-  $("adminHomeShirt").value = match.home_shirt_url || "";
-  $("adminAwayShirt").value = match.away_shirt_url || "";
-  $("adminMatchImage").value = match.match_image_url || "";
-  $("adminBanner").value = match.banner_url || "";
-  $("adminFeatured").checked = Boolean(match.featured);
-  $("adminSortOrder").value = match.sort_order ?? 0;
+  clearAdminDraft();
+  $('adminMatchId').value = match.id;
+  $('adminEditorTitle').textContent = `Editar #${match.id}`;
+  $('adminHome').value = match.home || "";
+  $('adminAway').value = match.away || "";
+  $('adminDate').value = localDateTimeValue(match.match_date);
+  $('adminSport').value = match.sport || "Fútbol";
+  $('adminCompetition').value = match.competition || "";
+  $('adminOddHome').value = match.odd_home ?? "2.00";
+  $('adminOddDraw').value = match.odd_draw ?? "3.00";
+  $('adminOddAway').value = match.odd_away ?? "2.00";
+  $('adminStatus').value = match.status || "open";
+  $('adminResult').value = match.result || "";
+  $('adminScoreHome').value = match.score_home ?? "";
+  $('adminScoreAway').value = match.score_away ?? "";
+  $('adminHomeLogo').value = match.home_logo_url || "";
+  $('adminAwayLogo').value = match.away_logo_url || "";
+  $('adminHomeShirt').value = match.home_shirt_url || "";
+  $('adminAwayShirt').value = match.away_shirt_url || "";
+  $('adminMatchImage').value = match.match_image_url || "";
+  $('adminBanner').value = match.banner_url || "";
+  $('adminFeatured').checked = Boolean(match.featured);
+  $('adminSortOrder').value = match.sort_order ?? 0;
+  renderAdminMarkets(match);
 }
 
 async function adminLoadData() {
@@ -517,10 +585,25 @@ async function adminLoadData() {
   }
 }
 
+function adminMatchMenu(m) {
+  return `<div class="admin-match-menu-wrap">
+    <button class="admin-kebab" type="button" aria-label="Opciones de ${esc(m.home)} vs ${esc(m.away)}" data-admin-menu="${m.id}">⋮</button>
+    <div class="admin-match-menu hidden" data-admin-menu-panel="${m.id}">
+      <button type="button" data-admin-edit="${m.id}">✏️ Editar partido</button>
+      <button type="button" data-admin-markets="${m.id}">🎯 Gestionar selecciones</button>
+      <button type="button" data-admin-close="${m.id}">🔒 Cerrar apuestas</button>
+      <button type="button" data-admin-result="${m.id}">🏁 Resultado final</button>
+      <button type="button" data-admin-live="${m.id}">⚽ Gestionar directo</button>
+      <div class="admin-menu-divider"></div>
+      <button type="button" class="danger-item" data-admin-delete-match="${m.id}">🗑️ Eliminar partido</button>
+    </div>
+  </div>`;
+}
+
 function renderAdminMatches() {
-  const root = $("adminMatchesList");
+  const root = $('adminMatchesList');
   if (!root) return;
-  $("adminMatchCount").textContent = String(adminMatches.length);
+  $('adminMatchCount').textContent = String(adminMatches.length);
   if (!adminMatches.length) {
     root.innerHTML = `<div class="empty-state">Todavía no hay partidos. Pulsa «Añadir partido».</div>`;
     return;
@@ -528,136 +611,111 @@ function renderAdminMatches() {
   root.innerHTML = adminMatches.map(m => {
     const active = Number(adminSelectedMatchId) === Number(m.id);
     const openMarkets = adminMarkets.filter(x => Number(x.match_id) === Number(m.id) && x.is_open).length;
-    return `<article class="admin-match-item ${active ? "active" : ""}">
+    const homeLogo = getTeamLogo(m, 'home', m.home);
+    const awayLogo = getTeamLogo(m, 'away', m.away);
+    return `<article class="admin-match-item ${active ? 'active' : ''}">
       <div class="admin-match-top">
-        <div class="admin-match-teams">${esc(m.home)} <span class="muted">vs</span> ${esc(m.away)}</div>
-        <span class="status ${m.status === "open" ? "won" : "pending"}">${esc(m.status || "open")}</span>
+        <div class="admin-match-teams-row">
+          ${teamBadge(m.home, homeLogo, 'home')}
+          <div class="admin-match-teams">${esc(m.home)} <span class="muted">vs</span> ${esc(m.away)}</div>
+          ${teamBadge(m.away, awayLogo, 'away')}
+        </div>
+        <div class="admin-match-menu-slot">${adminMatchMenu(m)}</div>
       </div>
       <div class="admin-match-meta">
-        <span>${esc(m.sport || "Fútbol")}</span><span>${esc(m.competition || "Sin competición")}</span>
+        <span>${esc(m.sport || 'Fútbol')}</span><span>${esc(m.competition || 'Sin competición')}</span>
         <span>${esc(getMatchDate(m))}</span><span>${openMarkets} mercados abiertos</span>
-        <span class="admin-live-score">Marcador: <strong>${Number(m.score_home ?? 0)} - ${Number(m.score_away ?? 0)}</strong>${m.is_live ? ` · ${m.live_minute ?? "?"}' DIRECTO` : ""}</span>
+        <span class="admin-live-score">Marcador: <strong>${Number(m.score_home ?? 0)} - ${Number(m.score_away ?? 0)}</strong>${m.is_live ? ` · ${m.live_minute ?? '?' }' DIRECTO` : ''}</span>
       </div>
-      <div class="admin-live-controls" data-live-match="${m.id}">
+      <div class="admin-live-controls hidden" data-live-match="${m.id}">
         <input type="number" min="0" step="1" data-live-home value="${Number(m.score_home ?? 0)}" aria-label="Goles local">
         <span>-</span>
         <input type="number" min="0" step="1" data-live-away value="${Number(m.score_away ?? 0)}" aria-label="Goles visitante">
-        <input type="number" min="0" step="1" data-live-minute value="${m.live_minute ?? ""}" placeholder="Min" aria-label="Minuto">
+        <input type="number" min="0" step="1" data-live-minute value="${m.live_minute ?? ''}" placeholder="Min" aria-label="Minuto">
         <button class="btn btn-secondary admin-mini" data-live-update="${m.id}">⚽ Actualizar</button>
-        <button class="btn btn-ghost admin-mini" data-live-toggle="${m.id}">${m.is_live ? "⏹ Parar directo" : "🔴 Poner directo"}</button>
+        <button class="btn btn-ghost admin-mini" data-live-toggle="${m.id}">${m.is_live ? '⏹ Parar directo' : '🔴 Poner directo'}</button>
         <button class="btn btn-ghost admin-mini" data-live-finish="${m.id}">🏁 Finalizar</button>
       </div>
-      <div class="admin-match-actions">
-        <button class="btn btn-secondary admin-mini" data-admin-edit="${m.id}">Editar</button>
-        <button class="btn btn-ghost admin-mini" data-admin-markets="${m.id}">Cuotas</button>
-        <button class="btn btn-ghost admin-mini" data-admin-close="${m.id}">Cerrar mercados</button>
-        <button class="btn btn-ghost admin-mini" data-admin-result="${m.id}">Resultado</button>
-        <button class="btn btn-danger admin-mini" data-admin-delete-match="${m.id}">Borrar</button>
-      </div>
     </article>`;
-  }).join("");
+  }).join('');
 
-  root.querySelectorAll("[data-live-update]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.liveUpdate);
-    const box = root.querySelector(`[data-live-match="${id}"]`);
-    const home = Number(box.querySelector("[data-live-home]").value);
-    const away = Number(box.querySelector("[data-live-away]").value);
-    const minuteRaw = box.querySelector("[data-live-minute]").value.trim();
-    const minute = minuteRaw === "" ? null : Number(minuteRaw);
-    if (!Number.isInteger(home) || home < 0 || !Number.isInteger(away) || away < 0 || (minute !== null && (!Number.isInteger(minute) || minute < 0))) {
-      adminMsg("Marcador/minuto no válidos.", "error"); return;
-    }
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_update_live_result", {
-        p_match_id:id, p_score_home:home, p_score_away:away,
-        p_live_minute:minute, p_is_live:true, p_status:null
-      });
-      if (error) throw error;
-    }, "Marcador actualizado en directo.");
+  root.querySelectorAll('[data-admin-menu]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = btn.dataset.adminMenu;
+    root.querySelectorAll('.admin-match-menu').forEach(menu => {
+      if (menu.dataset.adminMenuPanel === id) menu.classList.toggle('hidden');
+      else menu.classList.add('hidden');
+    });
+  }));
+  root.querySelectorAll('[data-admin-live]').forEach(b => b.addEventListener('click', () => {
+    const box = root.querySelector(`[data-live-match="${b.dataset.adminLive}"]`);
+    if (box) box.classList.toggle('hidden');
+    b.closest('.admin-match-menu')?.classList.add('hidden');
   }));
 
-  root.querySelectorAll("[data-live-toggle]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.liveToggle);
-    const m = adminMatches.find(x => Number(x.id) === id);
-    const next = !Boolean(m?.is_live);
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_set_match_live", { p_match_id:id, p_is_live:next });
-      if (error) throw error;
-    }, next ? "Partido puesto en DIRECTO." : "Partido sacado de DIRECTO.");
+  root.querySelectorAll('[data-live-update]').forEach(b => b.addEventListener('click', async () => {
+    const id = Number(b.dataset.liveUpdate), box = root.querySelector(`[data-live-match="${id}"]`);
+    const home = Number(box.querySelector('[data-live-home]').value), away = Number(box.querySelector('[data-live-away]').value);
+    const minuteRaw = box.querySelector('[data-live-minute]').value.trim();
+    const minute = minuteRaw === '' ? null : Number(minuteRaw);
+    if (!Number.isInteger(home) || home < 0 || !Number.isInteger(away) || away < 0 || (minute !== null && (!Number.isInteger(minute) || minute < 0))) { adminMsg('Marcador/minuto no válidos.', 'error'); return; }
+    await adminAction(async () => { const {error}=await sb.rpc('admin_update_live_result',{p_match_id:id,p_score_home:home,p_score_away:away,p_live_minute:minute,p_is_live:true,p_status:null}); if(error) throw error; }, 'Marcador actualizado en directo.');
   }));
+  root.querySelectorAll('[data-live-toggle]').forEach(b => b.addEventListener('click', async () => {
+    const id=Number(b.dataset.liveToggle), m=adminMatches.find(x=>Number(x.id)===id), next=!Boolean(m?.is_live);
+    await adminAction(async()=>{const {error}=await sb.rpc('admin_set_match_live',{p_match_id:id,p_is_live:next});if(error)throw error;},next?'Partido puesto en DIRECTO.':'Partido sacado de DIRECTO.');
+  }));
+  root.querySelectorAll('[data-live-finish]').forEach(b => b.addEventListener('click', async () => {
+    const id=Number(b.dataset.liveFinish), box=root.querySelector(`[data-live-match="${id}"]`), home=Number(box.querySelector('[data-live-home]').value), away=Number(box.querySelector('[data-live-away]').value);
+    if(!Number.isInteger(home)||home<0||!Number.isInteger(away)||away<0){adminMsg('Marcador no válido.','error');return;}
+    if(!confirm(`¿Finalizar el partido con ${home}-${away}?`))return;
+    await adminAction(async()=>{const {error}=await sb.rpc('admin_finish_match',{p_match_id:id,p_score_home:home,p_score_away:away});if(error)throw error;},'Partido finalizado y resultado guardado.');
+  }));
+  root.querySelectorAll('[data-admin-edit]').forEach(b => b.addEventListener('click', () => {
+    const m=adminMatches.find(x=>Number(x.id)===Number(b.dataset.adminEdit)); if(!m)return;
+    adminSelectedMatchId=Number(m.id); adminFillForm(m); renderAdminMatches(); $('adminEditor').scrollIntoView({behavior:'smooth',block:'start'}); closeAdminMenus();
+  }));
+  root.querySelectorAll('[data-admin-markets]').forEach(b => b.addEventListener('click', () => {
+    const m=adminMatches.find(x=>Number(x.id)===Number(b.dataset.adminMarkets)); if(!m)return;
+    adminSelectedMatchId=Number(m.id); renderAdminMatches(); renderAdminMarkets(m); $('adminMarkets').scrollIntoView({behavior:'smooth',block:'start'}); closeAdminMenus();
+  }));
+  root.querySelectorAll('[data-admin-close]').forEach(b => b.addEventListener('click', async () => {
+    const id=Number(b.dataset.adminClose); if(!confirm('¿Cerrar todos los mercados de este partido? No se borrará el historial.'))return;
+    await adminAction(async()=>{const {error}=await sb.rpc('admin_close_match_markets',{p_match_id:id,p_status:'closed'});if(error)throw error;adminSelectedMatchId=id;},'Mercados cerrados.');
+  }));
+  root.querySelectorAll('[data-admin-result]').forEach(b => b.addEventListener('click', async () => {
+    const id=Number(b.dataset.adminResult),m=adminMatches.find(x=>Number(x.id)===id);if(!m)return;
+    const scoreHome=prompt(`Goles de ${m.home}`,m.score_home??'0');if(scoreHome===null)return;
+    const scoreAway=prompt(`Goles de ${m.away}`,m.score_away??'0');if(scoreAway===null)return;
+    await adminAction(async()=>{const {error}=await sb.rpc('admin_finish_match',{p_match_id:id,p_score_home:Number(scoreHome),p_score_away:Number(scoreAway)});if(error)throw error;},'Resultado final actualizado.');
+  }));
+  root.querySelectorAll('[data-admin-delete-match]').forEach(b => b.addEventListener('click', async () => {
+    const id=Number(b.dataset.adminDeleteMatch);
+    if(!confirm('¿Eliminar este partido definitivamente? Si ya tiene apuestas o combinadas, se conservará el historial y Supabase impedirá el borrado.'))return;
+    await adminAction(async()=>{const {error}=await sb.rpc('admin_delete_match',{p_match_id:id});if(error)throw error;if(Number(adminSelectedMatchId)===id)adminSelectedMatchId=null;},'Partido eliminado.');
+  }));
+}
 
-  root.querySelectorAll("[data-live-finish]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.liveFinish);
-    const box = root.querySelector(`[data-live-match="${id}"]`);
-    const home = Number(box.querySelector("[data-live-home]").value);
-    const away = Number(box.querySelector("[data-live-away]").value);
-    if (!Number.isInteger(home) || home < 0 || !Number.isInteger(away) || away < 0) {
-      adminMsg("Marcador no válido.", "error"); return;
-    }
-    if (!confirm(`¿Finalizar el partido con ${home}-${away}?`)) return;
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_finish_match", {
-        p_match_id:id, p_score_home:home, p_score_away:away
-      });
-      if (error) throw error;
-    }, "Partido finalizado y resultado guardado.");
-  }));
+function closeAdminMenus(){ document.querySelectorAll('.admin-match-menu').forEach(x=>x.classList.add('hidden')); }
+document.addEventListener('click', e => { if(!e.target.closest('.admin-match-menu-wrap')) closeAdminMenus(); });
 
-  root.querySelectorAll("[data-admin-edit]").forEach(b => b.addEventListener("click", () => {
-    const m = adminMatches.find(x => Number(x.id) === Number(b.dataset.adminEdit));
-    if (!m) return;
-    adminSelectedMatchId = Number(m.id);
-    adminFillForm(m);
-    renderAdminMatches();
-    renderAdminMarkets(m);
-    $("adminEditor").scrollIntoView({behavior:"smooth", block:"start"});
-  }));
-  root.querySelectorAll("[data-admin-markets]").forEach(b => b.addEventListener("click", () => {
-    const m = adminMatches.find(x => Number(x.id) === Number(b.dataset.adminMarkets));
-    if (!m) return;
-    adminSelectedMatchId = Number(m.id);
-    renderAdminMatches();
-    renderAdminMarkets(m);
-    $("adminMarkets").scrollIntoView({behavior:"smooth", block:"start"});
-  }));
-  root.querySelectorAll("[data-admin-close]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.adminClose);
-    if (!confirm("¿Cerrar todos los mercados de este partido? No se borrará el historial.")) return;
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_close_match_markets", { p_match_id:id, p_status:"closed" });
-      if (error) throw error;
-      adminSelectedMatchId = id;
-    }, "Mercados cerrados.");
-  }));
-
-  root.querySelectorAll("[data-admin-result]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.adminResult);
-    const m = adminMatches.find(x => Number(x.id) === id);
-    if (!m) return;
-    const scoreHome = prompt(`Goles de ${m.home}`, m.score_home ?? "0");
-    if (scoreHome === null) return;
-    const scoreAway = prompt(`Goles de ${m.away}`, m.score_away ?? "0");
-    if (scoreAway === null) return;
-    let result = "draw";
-    if (Number(scoreHome) > Number(scoreAway)) result = "home";
-    if (Number(scoreAway) > Number(scoreHome)) result = "away";
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_finish_match", {
-        p_match_id:id, p_score_home:Number(scoreHome), p_score_away:Number(scoreAway)
-      });
-      if (error) throw error;
-    }, "Resultado final actualizado.");
-  }));
-
-  root.querySelectorAll("[data-admin-delete-match]").forEach(b => b.addEventListener("click", async () => {
-    const id = Number(b.dataset.adminDeleteMatch);
-    if (!confirm("¿Borrar este partido? Si tiene apuestas o combinadas, Supabase bloqueará el borrado para proteger el historial.")) return;
-    await adminAction(async () => {
-      const { error } = await sb.rpc("admin_delete_match", { p_match_id:id });
-      if (error) throw error;
-      if (Number(adminSelectedMatchId) === id) adminSelectedMatchId = null;
-    }, "Partido borrado.");
-  }));
+function renderDraftMarkets() {
+  const root = $('adminMarketsList');
+  const toolbar = $('adminMarketToolbar');
+  if (!root || $('adminMatchId').value) return;
+  toolbar?.classList.remove('hidden');
+  $('adminSelectedMatchTitle').textContent = $('adminHome').value && $('adminAway').value ? `${$('adminHome').value} vs ${$('adminAway').value}` : 'Borrador de partido';
+  $('adminSelectedMatchMeta').textContent = 'Las selecciones se guardan en este borrador hasta crear el partido.';
+  if (!adminDraftMarkets.length) { root.innerHTML = `<div class="empty-state">No hay selecciones en el borrador. Pulsa «＋ Añadir mercado».</div>`; return; }
+  root.innerHTML = adminDraftMarkets.map((m,i)=>`<div class="admin-market-row draft-market-row" data-draft-market="${i}">
+    <label>Categoría<input data-field="category" value="${esc(m.category||'Resultado')}"></label>
+    <label>Nombre / selección<input data-field="name" value="${esc(m.name||'')}"></label>
+    <label>Cuota<input data-field="odd" type="number" step="0.01" min="1.01" value="${Number(m.odd||2).toFixed(2)}"></label>
+    <label>Estado<select data-field="open"><option value="true" ${m.is_open!==false?'selected':''}>Abierto</option><option value="false" ${m.is_open===false?'selected':''}>Cerrado</option></select></label>
+    <div class="market-actions"><button class="btn btn-secondary" data-save-draft-market="${i}">Guardar</button><button class="btn btn-danger" data-delete-draft-market="${i}">Borrar</button></div>
+  </div>`).join('');
+  root.querySelectorAll('[data-save-draft-market]').forEach(b=>b.addEventListener('click',()=>{const row=b.closest('[data-draft-market]'),i=Number(b.dataset.saveDraftMarket);adminDraftMarkets[i]={...adminDraftMarkets[i],category:row.querySelector('[data-field="category"]').value.trim(),name:row.querySelector('[data-field="name"]').value.trim(),odd:Number(row.querySelector('[data-field="odd"]').value),is_open:row.querySelector('[data-field="open"]').value==='true'};saveAdminDraft();adminMsg('Selección guardada en el borrador.','ok');renderDraftMarkets();}));
+  root.querySelectorAll('[data-delete-draft-market]').forEach(b=>b.addEventListener('click',()=>{adminDraftMarkets.splice(Number(b.dataset.deleteDraftMarket),1);saveAdminDraft();renderDraftMarkets();}));
 }
 
 function renderAdminMarkets(match) {
@@ -823,6 +881,15 @@ async function adminSaveMatch(e) {
     const { data: createdId, error } = await sb.rpc(rpc, params);
     if (error) throw error;
     const matchId = id || Number(createdId);
+    if (!id && matchId && adminDraftMarkets.length) {
+      for (const market of adminDraftMarkets) {
+        const { error: marketError } = await sb.rpc("admin_create_market", {
+          p_match_id:matchId, p_category:market.category, p_name:market.name, p_odd:Number(market.odd),
+          p_is_open:Boolean(market.is_open), p_sort_order:Number(market.sort_order || 0)
+        });
+        if (marketError) throw marketError;
+      }
+    }
     if (matchId && ($("adminScoreHome").value !== "" || $("adminScoreAway").value !== "" || $("adminResult").value)) {
       const { error: scoreError } = await sb.rpc("admin_update_match_result", {
         p_match_id:matchId,
@@ -834,46 +901,52 @@ async function adminSaveMatch(e) {
       if (scoreError) throw scoreError;
     }
   }, id ? "Partido actualizado." : "Partido creado.");
-  adminResetForm();
+  clearAdminDraft();
+  adminResetForm({keepDraft:true});
 }
 
 async function adminAddMarket() {
-  if (!adminSelectedMatchId) {
-    adminMsg("Selecciona primero un partido.", "error");
-    return;
-  }
-  const category = prompt("Categoría: Resultado, Goles, Córners, Remates, A puerta, Tarjetas o Jugadores", "Resultado");
+  const category = prompt('Categoría: Resultado, Goles, Córners, Remates, A puerta, Tarjetas o Jugadores', 'Resultado');
   if (!category) return;
-  const name = prompt("Nombre de la selección / mercado", "Gana local");
+  const name = prompt('Nombre de la selección / mercado', 'Gana local');
   if (!name) return;
-  const odd = Number(prompt("Cuota", "2.00"));
-  if (!Number.isFinite(odd) || odd <= 1) { adminMsg("La cuota debe ser mayor que 1.", "error"); return; }
-  await adminAction(async () => {
-    const { error } = await sb.rpc("admin_create_market", { p_match_id:Number(adminSelectedMatchId), p_category:category.trim(), p_name:name.trim(), p_odd:odd, p_is_open:true, p_sort_order:0 });
-    if (error) throw error;
-  }, "Mercado creado.");
+  const odd = Number(prompt('Cuota', '2.00'));
+  if (!Number.isFinite(odd) || odd <= 1) { adminMsg('La cuota debe ser mayor que 1.', 'error'); return; }
+  if (!adminSelectedMatchId && !$('adminMatchId').value) {
+    adminDraftMarkets.push({category:category.trim(),name:name.trim(),odd,is_open:true,sort_order:adminDraftMarkets.length});
+    saveAdminDraft(); renderDraftMarkets(); adminMsg('Selección añadida al borrador. No se perderá al salir.', 'ok'); return;
+  }
+  if (!adminSelectedMatchId) { adminMsg('Selecciona primero un partido.', 'error'); return; }
+  await adminAction(async()=>{const {error}=await sb.rpc('admin_create_market',{p_match_id:Number(adminSelectedMatchId),p_category:category.trim(),p_name:name.trim(),p_odd:odd,p_is_open:true,p_sort_order:0});if(error)throw error;},'Mercado creado.');
 }
+
 
 function initAdminPanel() {
-  const panel = $("adminPanel");
-  if (!panel) return;
+  const panel = $('adminPanel'); if (!panel) return;
   const isAdmin = Boolean(profile?.is_admin);
-  panel.classList.toggle("hidden", !isAdmin);
-  const adminTopBtn = $("adminTopBtn");
-  if (adminTopBtn) {
-    adminTopBtn.classList.toggle("hidden", !isAdmin);
-    adminTopBtn.onclick = () => panel.scrollIntoView({behavior:"smooth", block:"start"});
-  }
+  panel.classList.toggle('hidden', !isAdmin);
+  const adminTopBtn = $('adminTopBtn');
+  if (adminTopBtn) { adminTopBtn.classList.toggle('hidden', !isAdmin); adminTopBtn.onclick=()=>panel.scrollIntoView({behavior:'smooth',block:'start'}); }
   if (!isAdmin) return;
-
-  $("adminNewMatchBtn").onclick = () => { adminResetForm(); $("adminEditor").scrollIntoView({behavior:"smooth", block:"start"}); };
-  $("adminCancelEditBtn").onclick = adminResetForm;
-  $("adminRefreshBtn").onclick = () => adminAction(adminLoadData, "Panel actualizado.");
-  $("adminMatchForm").onsubmit = adminSaveMatch;
-  $("adminAddMarketBtn").onclick = adminAddMarket;
-  adminResetForm();
-  adminLoadData().catch(e => adminMsg(e.message || "No se pudo cargar el panel admin.", "error"));
+  $('adminNewMatchBtn').onclick=()=>{adminSelectedMatchId=null;adminResetForm({keepDraft:true});restoreAdminDraft();$('adminEditor').scrollIntoView({behavior:'smooth',block:'start'});};
+  $('adminCancelEditBtn').onclick=()=>{
+    if (!$('adminMatchId').value && (draftFormValues().home || draftFormValues().away || adminDraftMarkets.length || draftFormValues().homeLogo || draftFormValues().matchImage || draftFormValues().banner)) {
+      saveAdminDraft(); adminMsg('Borrador guardado. Puedes salir y volver sin perder selecciones ni imágenes.','ok'); return;
+    }
+    adminResetForm(); adminSelectedMatchId=null;
+  };
+  $('adminRefreshBtn').onclick=()=>adminAction(adminLoadData,'Panel actualizado.');
+  $('adminMatchForm').onsubmit=adminSaveMatch;
+  $('adminAddMarketBtn').onclick=adminAddMarket;
+  const draftInputs=['adminHome','adminAway','adminDate','adminSport','adminCompetition','adminOddHome','adminOddDraw','adminOddAway','adminStatus','adminResult','adminScoreHome','adminScoreAway','adminHomeLogo','adminAwayLogo','adminHomeShirt','adminAwayShirt','adminMatchImage','adminBanner','adminSortOrder'];
+  draftInputs.forEach(id=>$(id)?.addEventListener('input',saveAdminDraft));
+  $('adminFeatured')?.addEventListener('change',saveAdminDraft);
+  adminResetForm({keepDraft:true});
+  const restored=restoreAdminDraft();
+  if (!restored) renderDraftMarkets();
+  adminLoadData().catch(e=>adminMsg(e.message||'No se pudo cargar el panel admin.','error'));
 }
+
 async function register() {
   const email = $("email").value.trim();
   const password = $("password").value;
